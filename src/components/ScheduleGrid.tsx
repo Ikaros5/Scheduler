@@ -141,7 +141,10 @@ export default function ScheduleGrid() {
         }
     };
 
+    const isTouchInteraction = useRef(false);
+
     const handleMouseDown = (day: typeof weekDays[0], hour: number) => {
+        if (isTouchInteraction.current) return;
         if (!isSlotValidAndFuture(day.date, hour)) return;
         const key = `${day.dbIndex}-${hour}`;
         const mode = selected.has(key) ? "remove" : "add";
@@ -157,6 +160,7 @@ export default function ScheduleGrid() {
 
     const handleMouseEnter = (day: typeof weekDays[0], hour: number) => {
         if (!isDragging || !isSlotValidAndFuture(day.date, hour)) return;
+        if (isTouchInteraction.current) return; // Ignore on mobile
         const key = `${day.dbIndex}-${hour}`;
         const newSelected = new Set(selected);
         if (dragMode === "add") newSelected.add(key);
@@ -166,9 +170,11 @@ export default function ScheduleGrid() {
     };
 
     const handleTouchStart = (e: React.TouchEvent, day: typeof weekDays[0], hour: number) => {
+        // Flag that we are using touch to prevent overlapping mousedown events
+        isTouchInteraction.current = true;
+        setTimeout(() => { isTouchInteraction.current = false; }, 500);
+
         if (!isSlotValidAndFuture(day.date, hour)) return;
-        // Don't preventDefault here to allow tap vs scroll detection if needed, 
-        // but we'll manage the drag state.
         const key = `${day.dbIndex}-${hour}`;
         const mode = selected.has(key) ? "remove" : "add";
         setDragMode(mode);
