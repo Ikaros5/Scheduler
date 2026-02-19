@@ -1,0 +1,16 @@
+{
+  "name": "Scheduler",
+  "short_name": "Scheduler",
+  "description": "Premium weekly meeting scheduler for friends.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#020617",
+  "theme_color": "#6366f1",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

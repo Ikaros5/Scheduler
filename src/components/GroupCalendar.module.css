@@ -1,0 +1,329 @@
+.wrapper {
+    padding: 2rem;
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+.navGroup {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.navBtn {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: #fff;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: var(--transition-fast);
+}
+
+.navBtn:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: #fff;
+}
+
+.groupSelector {
+    margin: 1rem 0 0.5rem;
+    display: flex;
+    justify-content: center;
+}
+
+.selectInput {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    border-radius: 8px;
+    padding: 0.5rem 1rem;
+    color: #fff;
+    cursor: pointer;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+.selectInput:focus {
+    border-color: var(--primary);
+}
+
+.selectInput option {
+    background: #1a1a1a;
+}
+
+.monthHeader {
+    text-align: center;
+    margin-bottom: 2rem;
+}
+
+
+.subtext {
+    font-size: 0.875rem;
+    color: var(--text-muted);
+    margin-top: 4px;
+}
+
+.gridBodyWrapper {
+    width: 100%;
+}
+
+.header {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+    gap: 4px;
+    margin-bottom: 12px;
+}
+
+
+
+.legendItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.dayLabel {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+}
+
+.weekday {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    color: var(--text-muted);
+}
+
+.dateNum {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.gridBody {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 80px repeat(7, 1fr);
+    gap: 4px;
+}
+
+.timeLabel {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    justify-content: center;
+    padding-right: 12px;
+    line-height: 1.2;
+}
+
+.slotName {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.slotTime {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+}
+
+.cell {
+    aspect-ratio: 1;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.03);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    transition: background 0.1s ease;
+}
+
+.disabled {
+    background: rgba(0, 0, 0, 0.2) !important;
+    border-color: transparent !important;
+    opacity: 0.3;
+}
+
+.countBadge {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #000;
+    opacity: 0.9;
+}
+
+/* Heatmap Colors */
+.heatLow {
+    background: rgba(99, 102, 241, 0.2) !important;
+}
+
+.heatMid {
+    background: rgba(99, 102, 241, 0.5) !important;
+}
+
+.heatHigh {
+    background: rgba(99, 102, 241, 0.8) !important;
+}
+
+.heatFull {
+    background: var(--primary) !important;
+    box-shadow: 0 0 15px var(--primary-glow);
+}
+
+.legend {
+    margin-top: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.legendBox {
+    width: 16px;
+    height: 16px;
+    border-radius: 4px;
+}
+
+.heatGreen {
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%) !important;
+    box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.heatYellow {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%) !important;
+    box-shadow: 0 0 12px rgba(245, 158, 11, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+.heatRed {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
+}
+
+
+.loading {
+    text-align: center;
+    padding: 4rem;
+    color: var(--text-secondary);
+}
+
+.titleWrapper {
+    cursor: pointer;
+    position: relative;
+    padding: 4px 12px;
+    border-radius: 8px;
+    transition: background 0.2s;
+    min-width: 180px;
+    text-align: center;
+}
+
+.titleWrapper:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.hiddenInput {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    opacity: 0;
+    cursor: pointer;
+    visibility: hidden;
+}
+
+.sessionCell {
+    background: var(--primary) !important;
+    box-shadow: 0 0 15px var(--primary-glow);
+    border: 1px solid rgba(255, 255, 255, 0.4) !important;
+    z-index: 2;
+    animation: sessionPulse 2s infinite ease-in-out;
+}
+
+@keyframes sessionPulse {
+    0% {
+        transform: scale(1);
+        box-shadow: 0 0 10px var(--primary-glow);
+    }
+
+    50% {
+        transform: scale(1.03);
+        box-shadow: 0 0 20px var(--primary-glow);
+    }
+
+    100% {
+        transform: scale(1);
+        box-shadow: 0 0 10px var(--primary-glow);
+    }
+}
+
+.sessionLabel {
+    font-size: 0.65rem;
+    font-weight: 900;
+    color: #fff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+@media (max-width: 640px) {
+    .sessionLabel {
+        font-size: 0.45rem;
+    }
+
+    .wrapper {
+        padding: 1rem 0.5rem;
+    }
+
+    .header,
+    .row {
+        grid-template-columns: 35px repeat(7, 1fr);
+        gap: 2px;
+    }
+
+    .timeLabel {
+        padding-right: 4px;
+        line-height: 1;
+        justify-content: center;
+    }
+
+    .slotName {
+        font-size: 0.55rem;
+        writing-mode: vertical-lr;
+        transform: rotate(180deg);
+        text-align: center;
+        margin-bottom: 2px;
+    }
+
+    .slotTime {
+        display: none;
+    }
+
+    .weekday {
+        font-size: 0.55rem;
+    }
+
+    .dateNum {
+        font-size: 0.85rem;
+    }
+
+    .cell {
+        border-radius: 2px;
+        aspect-ratio: auto;
+        height: 32px;
+    }
+}

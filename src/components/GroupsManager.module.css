@@ -1,0 +1,441 @@
+.wrapper {
+    padding: 2.5rem 1.5rem;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+}
+
+.header {
+    margin-bottom: 3.5rem;
+    text-align: center;
+}
+
+.header h2 {
+    font-size: 2.5rem;
+    font-weight: 800;
+    background: linear-gradient(135deg, #fff 0%, rgba(255, 255, 255, 0.7) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin: 0 0 0.75rem 0;
+    letter-spacing: -0.02em;
+}
+
+.subtext {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+}
+
+.topActions {
+    display: flex;
+    gap: 1.25rem;
+    margin-bottom: 3rem;
+    justify-content: center;
+    align-items: center;
+}
+
+.inputField {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    padding: 0.875rem 1.25rem;
+    color: #fff;
+    width: 340px;
+    font-size: 1rem;
+    outline: none;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.inputField:focus {
+    border-color: var(--primary);
+    background: rgba(255, 255, 255, 0.07);
+    box-shadow: 0 0 20px rgba(var(--primary-rgb), 0.15);
+}
+
+.groupsGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    gap: 2rem;
+}
+
+.groupCard {
+    display: flex;
+    flex-direction: column;
+    padding: 1.75rem;
+    gap: 1.5rem;
+    transition: transform 0.3s ease;
+}
+
+.groupCard:hover {
+    transform: translateY(-4px);
+}
+
+.groupHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+}
+
+.groupTitleArea {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.groupHeader h3 {
+    margin: 0;
+    font-size: 1.5rem;
+    color: #fff;
+    font-weight: 700;
+}
+
+.memberCount {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.deleteBtn {
+    background: rgba(255, 77, 77, 0.1);
+    border: 1px solid rgba(255, 77, 77, 0.2);
+    color: #ff4d4d;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.deleteBtn:hover {
+    background: #ff4d4d;
+    color: #fff;
+}
+
+.memberList {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    background: rgba(255, 255, 255, 0.02);
+    padding: 0.5rem;
+    border-radius: 14px;
+    max-height: 280px;
+    overflow-y: auto;
+}
+
+.memberItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid transparent;
+    border-radius: 10px;
+    transition: all 0.2s;
+}
+
+.memberItem:hover {
+    background: rgba(255, 255, 255, 0.06);
+    border-color: rgba(255, 255, 255, 0.1);
+}
+
+.memberInfo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.avatar {
+    width: 36px;
+    height: 36px;
+    background: linear-gradient(135deg, var(--primary) 0%, #7c3aed 100%);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #fff;
+    box-shadow: 0 4px 12px rgba(var(--primary-rgb), 0.3);
+}
+
+.memberName {
+    display: flex;
+    flex-direction: column;
+}
+
+.nameText {
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.emailText {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.removeBtn {
+    background: rgba(255, 255, 255, 0.05);
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.removeBtn:hover {
+    background: #ff4d4d;
+    color: #fff;
+}
+
+.addMemberArea {
+    margin-top: 0.5rem;
+}
+
+.memberSelect {
+    width: 100%;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--glass-border);
+    color: #fff;
+    padding: 0.875rem;
+    border-radius: 10px;
+    cursor: pointer;
+    font-size: 0.95rem;
+    transition: all 0.2s;
+}
+
+.memberSelect:hover {
+    background: rgba(255, 255, 255, 0.07);
+}
+
+.memberSelect:focus {
+    border-color: var(--primary);
+    outline: none;
+}
+
+.memberSelect option {
+    background: #1a1a1a;
+    padding: 10px;
+}
+
+.dmBadge {
+    background: linear-gradient(135deg, #ffd700 0%, #b8860b 100%);
+    color: #000;
+    font-size: 0.6rem;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-top: 2px;
+}
+
+.roleToggle {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--glass-border);
+    color: var(--text-muted);
+    cursor: pointer;
+    padding: 4px 8px;
+    border-radius: 6px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    transition: all 0.2s;
+    margin-right: 8px;
+}
+
+.roleToggle:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.roleToggleActive {
+    background: rgba(255, 215, 0, 0.2);
+    border-color: rgba(255, 215, 0, 0.4);
+    color: #ffd700;
+}
+
+.roleToggleActive:hover {
+    background: rgba(255, 215, 0, 0.3);
+}
+
+.groupMainLine {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+.missingControl {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.03);
+    padding: 6px 10px;
+    border-radius: 8px;
+    width: fit-content;
+}
+
+.missingLabel {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: 600;
+}
+
+.missingInput {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    color: var(--primary);
+    width: 48px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 800;
+    text-align: center;
+    outline: none;
+}
+
+.missingInput::-webkit-inner-spin-button {
+    opacity: 1;
+}
+
+.sessionArea {
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--glass-border);
+}
+
+.sectionTitle {
+    font-size: 0.9rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.sessionsList {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+}
+
+.sessionItem {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.05);
+    padding: 0.5rem 0.75rem;
+    border-radius: 8px;
+}
+
+.sessionInfo {
+    display: flex;
+    gap: 12px;
+}
+
+.sessionDate {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--primary);
+}
+
+.sessionSlot {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.deleteSessionSmall {
+    background: transparent;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: color 0.2s;
+}
+
+.deleteSessionSmall:hover {
+    color: #ff4d4d;
+}
+
+.sessionInputs {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
+}
+
+.inputGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.inputGroup label {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+}
+
+.sessionDateInput,
+.sessionSelect {
+    background: rgba(0, 0, 0, 0.2);
+    border: 1px solid var(--glass-border);
+    color: #fff;
+    padding: 0.75rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    outline: none;
+}
+
+.sessionSelect option {
+    background: #1a1a1a;
+}
+
+.saveSessionBtn {
+    background: var(--primary);
+    color: #fff;
+    border: none;
+    padding: 0.65rem 1rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+    font-size: 0.85rem;
+    white-space: nowrap;
+}
+
+.saveSessionBtn:hover {
+    filter: brightness(1.1);
+    transform: scale(1.02);
+}
+
+.clearSessionBtn {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--glass-border);
+    padding: 0.5rem;
+    border-radius: 8px;
+    font-size: 0.75rem;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.clearSessionBtn:hover {
+    color: #ff4d4d;
+    border-color: #ff4d4d;
+}
+
+.loading {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    color: var(--text-secondary);
+    font-size: 1.2rem;
+}

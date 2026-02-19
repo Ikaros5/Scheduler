@@ -1,0 +1,50 @@
+.container {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: rgba(255, 255, 255, 0.02);
+    border-radius: 12px;
+    border: 1px solid var(--glass-border);
+    text-align: center;
+}
+
+.active {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    color: #4ade80;
+    font-weight: 500;
+    font-size: 0.875rem;
+}
+
+.inactive p {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+    margin-bottom: 0.75rem;
+}
+
+.btnLink {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 0.75rem;
+}
+
+.btnLink:hover {
+    color: #fff;
+}
+
+.status {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    text-align: center;
+    margin-top: 1rem;
+}
+
+.error {
+    color: #ef4444;
+    font-size: 0.75rem;
+    margin-top: 0.5rem;
+}
