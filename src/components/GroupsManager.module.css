@@ -114,6 +114,29 @@
     color: #fff;
 }
 
+.notifyBtn {
+    background: rgba(147, 51, 234, 0.1);
+    border: 1px solid rgba(147, 51, 234, 0.2);
+    color: #c084fc;
+    padding: 4px 10px;
+    border-radius: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.notifyBtn:hover {
+    background: #9333ea;
+    color: #fff;
+}
+
+.groupHeaderActions {
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
 .memberList {
     display: flex;
     flex-direction: column;

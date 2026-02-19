@@ -152,6 +152,23 @@ export default function GroupsManager() {
         }
     }
 
+    async function notifyGroup(groupId: string) {
+        try {
+            const res = await fetch("/api/notify-group", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ groupId })
+            });
+
+            if (!res.ok) throw new Error("Failed to send notification.");
+
+            const data = await res.json();
+            alert(`Sent ${data.sentCount || 0} notifications to active group members!`);
+        } catch (err: any) {
+            alert(err.message || "Something went wrong.");
+        }
+    }
+
     const getInitials = (name: string, email: string) => {
         if (name) return name.substring(0, 2).toUpperCase();
         return email.substring(0, 2).toUpperCase();
@@ -211,7 +228,10 @@ export default function GroupsManager() {
                                     </div>
                                     <span className={styles.memberCount}>{groupMembers.length} Members</span>
                                 </div>
-                                <button className={styles.deleteBtn} onClick={() => deleteGroup(group.id)}>Delete</button>
+                                <div className={styles.groupHeaderActions}>
+                                    <button className={styles.notifyBtn} onClick={() => notifyGroup(group.id)}>Notify</button>
+                                    <button className={styles.deleteBtn} onClick={() => deleteGroup(group.id)}>Delete</button>
+                                </div>
                             </div>
 
                             <div className={styles.memberList}>
