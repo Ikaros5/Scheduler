@@ -1,0 +1,17 @@
+name: Weekly Push Notifications Reminder
+
+on:
+  schedule:
+    # Runs at 18:00 UTC every day, which is 19:00 CET (standard) / 20:00 CEST (summer)
+    - cron: '0 18 * * *'
+  workflow_dispatch: # Allows manual trigger for testing
+
+jobs:
+  ping-cron:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Hit the Reminders API
+        run: |
+          # Replace with your actual Netlify deployment URL once customized
+          # Use curl with failure mode
+          curl -f -X GET "${{ secrets.SITE_URL }}/api/cron/reminders?secret=${{ secrets.CRON_SECRET }}"

@@ -20,10 +20,20 @@ export default function NotificationToggle() {
     }, []);
 
     async function checkSubscription() {
-        const registration = await navigator.serviceWorker.ready;
-        const subscription = await registration.pushManager.getSubscription();
-        setIsSubscribed(!!subscription);
-        setLoading(false);
+        try {
+            const registration = await navigator.serviceWorker.getRegistration();
+            if (registration) {
+                const subscription = await registration.pushManager.getSubscription();
+                setIsSubscribed(!!subscription);
+            } else {
+                setIsSubscribed(false);
+            }
+        } catch (err) {
+            console.error(err);
+            setIsSubscribed(false);
+        } finally {
+            setLoading(false);
+        }
     }
 
     async function subscribe() {
