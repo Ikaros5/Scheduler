@@ -12,6 +12,7 @@ jobs:
     steps:
       - name: Hit the Reminders API
         run: |
-          # Replace with your actual Netlify deployment URL once customized
-          # Use curl with failure mode
-          curl -f -X GET "${{ secrets.SITE_URL }}/api/cron/reminders?secret=${{ secrets.CRON_SECRET }}"
+          # Strip trailing slash from SITE_URL if present to avoid 404 double-slashes
+          SITE_URL="${{ secrets.SITE_URL }}"
+          SITE_URL="${SITE_URL%/}"
+          curl -f -X GET "${SITE_URL}/api/cron/reminders?secret=${{ secrets.CRON_SECRET }}"
