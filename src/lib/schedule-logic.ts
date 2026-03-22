@@ -24,9 +24,9 @@ export function isHourActiveForDay(dayOfWeek: number, slotId: number): boolean {
     // Afternoon and Night are active every day
     if (slotId === 18 || slotId === 22) return true;
 
-    // Morning is only active on weekends
+    // Morning is now allowed on all days again.
     if (slotId === 9) {
-        return dayOfWeek === 6 || dayOfWeek === 0;
+        return true;
     }
 
     return false;

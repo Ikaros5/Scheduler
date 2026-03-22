@@ -36,6 +36,8 @@ interface RecurrentRule {
     id: string;
     day_of_week: number;
     hour: number;
+    start_date_idx: number;
+    end_date_idx: number;
 }
 
 export default function ScheduleGrid() {
@@ -45,6 +47,8 @@ export default function ScheduleGrid() {
     const [recurrentRules, setRecurrentRules] = useState<RecurrentRule[]>([]);
     const [newRecDay, setNewRecDay] = useState(0);
     const [newRecHour, setNewRecHour] = useState(18);
+    const [newRecStart, setNewRecStart] = useState("");
+    const [newRecEnd, setNewRecEnd] = useState("");
     const [isDragging, setIsDragging] = useState(false);
     const [dragMode, setDragMode] = useState<"add" | "remove">("add");
     const [saving, setSaving] = useState(false);
@@ -57,7 +61,14 @@ export default function ScheduleGrid() {
     const weekDays = getWeekDays(weekStart);
     const currentWeekIdx = weekDays[0].dbIndex;
 
-    const recurrentSet = new Set(recurrentRules.map(r => `${r.day_of_week}-${r.hour}`));
+    const recurrentSet = new Set<string>();
+    recurrentRules.forEach(r => {
+        weekDays.forEach(d => {
+            if (d.dayOfWeek === r.day_of_week && d.dbIndex >= r.start_date_idx && d.dbIndex <= r.end_date_idx) {
+                recurrentSet.add(`${d.dayOfWeek}-${r.hour}`);
+            }
+        });
+    });
 
     useEffect(() => {
         async function getInitialUser() {
@@ -148,17 +159,26 @@ export default function ScheduleGrid() {
 
     const addRecurrentRule = async () => {
         if (!user) return;
-        
-        // Ensure morning is only allowed on weekends
-        if (newRecHour === 9 && newRecDay !== 0 && newRecDay !== 6) {
-            alert("Morning slots are only available on weekends!");
+
+        let startIdx = 20240101;
+        let endIdx = 20991231;
+        if (newRecStart) {
+            startIdx = parseInt(newRecStart.replace(/-/g, ''));
+        }
+        if (newRecEnd) {
+            endIdx = parseInt(newRecEnd.replace(/-/g, ''));
+        }
+        if (endIdx < startIdx) {
+            alert("End date cannot be before start date!");
             return;
         }
 
         const { error } = await supabase.from("recurrent_unavailability").insert({
             user_id: user.id,
             day_of_week: newRecDay,
-            hour: newRecHour
+            hour: newRecHour,
+            start_date_idx: startIdx,
+            end_date_idx: endIdx
         });
 
         if (error) {
@@ -370,6 +390,14 @@ export default function ScheduleGrid() {
                             ))}
                         </select>
                     </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Start (Optional)</label>
+                        <input type="date" className={styles.selectField} value={newRecStart} onChange={(e) => setNewRecStart(e.target.value)} style={{ minWidth: 'auto'}} />
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
+                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>End (Optional)</label>
+                        <input type="date" className={styles.selectField} value={newRecEnd} onChange={(e) => setNewRecEnd(e.target.value)} style={{ minWidth: 'auto'}} />
+                    </div>
                     <button className="btn-primary" style={{ padding: '8px 16px', height: 'fit-content' }} onClick={addRecurrentRule}>
                         Add Block
                     </button>
@@ -379,6 +407,10 @@ export default function ScheduleGrid() {
                     {recurrentRules.map(rule => {
                         const dayName = DAYS_OF_WEEK[rule.day_of_week];
                         const timeName = TIME_SLOTS.find(t => t.id === rule.hour)?.label || 'Unknown';
+                        let subInfo = "";
+                        if (rule.start_date_idx > 20240101 || rule.end_date_idx < 20991231) {
+                            subInfo = ` (Date Limited)`;
+                        }
                         return (
                             <span key={rule.id} style={{
                                 background: 'rgba(239, 68, 68, 0.1)',
@@ -391,7 +423,7 @@ export default function ScheduleGrid() {
                                 alignItems: 'center',
                                 gap: '6px'
                             }}>
-                                {dayName} {timeName}
+                                {dayName} {timeName}{subInfo}
                                 <button
                                     onClick={() => removeRecurrentRule(rule.id)}
                                     style={{

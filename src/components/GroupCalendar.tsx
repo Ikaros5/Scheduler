@@ -207,7 +207,7 @@ export default function GroupCalendar() {
                 : Promise.resolve({ data: [] });
 
             const recurrentPromise = memberIds.length > 0
-                ? supabase.from("recurrent_unavailability").select("user_id, day_of_week, hour").in("user_id", memberIds)
+                ? supabase.from("recurrent_unavailability").select("user_id, day_of_week, hour, start_date_idx, end_date_idx").in("user_id", memberIds)
                 : Promise.resolve({ data: [] });
 
             const [availResult, sessionResult, allMembershipsRes, recurrentRes] = await Promise.all([
@@ -255,7 +255,7 @@ export default function GroupCalendar() {
 
             if (recurrentRes.data) {
                 recurrentRes.data.forEach((rStatus: any) => {
-                    const dayMeta = weekDays.find(d => d.dayOfWeek === rStatus.day_of_week);
+                    const dayMeta = weekDays.find(d => d.dayOfWeek === rStatus.day_of_week && d.dbIndex >= rStatus.start_date_idx && d.dbIndex <= rStatus.end_date_idx);
                     if (dayMeta) {
                         extraBusyData.push({
                             user_id: rStatus.user_id,
