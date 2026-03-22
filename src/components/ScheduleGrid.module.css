@@ -238,3 +238,13 @@
         height: 44px;
     }
 }
+.selectField {
+    padding: 8px 12px;
+    border-radius: 8px;
+    background: var(--bg-dark);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    color: var(--text-primary);
+    font-size: 0.9rem;
+    outline: none;
+    min-width: 150px;
+}

@@ -206,7 +206,11 @@ export default function GroupCalendar() {
                 ? supabase.from("group_members").select("user_id, group_id").in("user_id", memberIds)
                 : Promise.resolve({ data: [] });
 
-            const [availResult, sessionResult, allMembershipsRes] = await Promise.all([
+            const recurrentPromise = memberIds.length > 0
+                ? supabase.from("recurrent_unavailability").select("user_id, day_of_week, hour").in("user_id", memberIds)
+                : Promise.resolve({ data: [] });
+
+            const [availResult, sessionResult, allMembershipsRes, recurrentRes] = await Promise.all([
                 query,
                 supabase
                     .from("group_sessions")
@@ -214,7 +218,8 @@ export default function GroupCalendar() {
                     .in("group_id", targetGroupIds)
                     .gte("day_index", startRange)
                     .lte("day_index", endRange),
-                membershipsPromise
+                membershipsPromise,
+                recurrentPromise
             ]);
 
             let extraBusyData: AvailabilityData[] = [];
@@ -246,6 +251,19 @@ export default function GroupCalendar() {
                         });
                     }
                 }
+            }
+
+            if (recurrentRes.data) {
+                recurrentRes.data.forEach((rStatus: any) => {
+                    const dayMeta = weekDays.find(d => d.dayOfWeek === rStatus.day_of_week);
+                    if (dayMeta) {
+                        extraBusyData.push({
+                            user_id: rStatus.user_id,
+                            day_index: dayMeta.dbIndex,
+                            hour: rStatus.hour
+                        });
+                    }
+                });
             }
 
             const finalAvail = [...(availResult.data || []), ...extraBusyData];
