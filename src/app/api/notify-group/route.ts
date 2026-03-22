@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@supabase/supabase-js';
+import { createClient } from '@/lib/supabase/server';
 import webpush from 'web-push';
 
 export async function POST(request: Request) {
@@ -11,9 +11,7 @@ export async function POST(request: Request) {
             return NextResponse.json({ error: 'Group ID is required' }, { status: 400 });
         }
 
-        const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-        const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!; // We use anon key but since it's server side we could use anon, but we'll manually query
-        const supabase = createClient(supabaseUrl, supabaseKey);
+        const supabase = await createClient();
 
         webpush.setVapidDetails(
             'mailto:support@example.com',
@@ -21,25 +19,10 @@ export async function POST(request: Request) {
             process.env.VAPID_PRIVATE_KEY!
         );
 
-        // Fetch all users in the specified group
-        const { data: groupMembers, error: membersError } = await supabase
-            .from('group_members')
-            .select('user_id')
-            .eq('group_id', groupId);
-
-        if (membersError) throw membersError;
-
-        if (!groupMembers || groupMembers.length === 0) {
-            return NextResponse.json({ success: true, sentCount: 0, message: 'No members in group' });
-        }
-
-        const userIds = groupMembers.map((m: any) => m.user_id);
-
-        // Fetch subscriptions for these users
-        const { data: subscriptions, error: subsError } = await supabase
-            .from('push_subscriptions')
-            .select('user_id, subscription')
-            .in('user_id', userIds);
+        // Fetch subscriptions using the secure RPC that verifies the user is actually in this group
+        const { data: subscriptions, error: subsError } = await supabase.rpc('get_group_push_subs', {
+            target_group_id: groupId
+        });
 
         if (subsError) throw subsError;
 
@@ -55,7 +38,7 @@ export async function POST(request: Request) {
                 await webpush.sendNotification(
                     sub.subscription,
                     JSON.stringify({
-                        title: "Scheduler Update",
+                        title: "Schedule Update Requested",
                         body: "A group member requested you to update your schedule!",
                         icon: "/icon.png"
                     })

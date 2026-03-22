@@ -118,9 +118,9 @@
 }
 
 .active {
-    background: var(--secondary) !important;
-    box-shadow: 0 0 10px rgba(236, 72, 153, 0.4) !important;
-    border-color: transparent;
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%) !important;
+    box-shadow: 0 0 12px rgba(239, 68, 68, 0.4) !important;
+    border: 1px solid rgba(255, 255, 255, 0.1) !important;
     animation: cellPulse 2s infinite ease-in-out;
 }
 
