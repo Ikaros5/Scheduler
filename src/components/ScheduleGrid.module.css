@@ -248,3 +248,17 @@
     outline: none;
     min-width: 150px;
 }
+
+.recurrentCell {
+    cursor: default !important;
+    background: repeating-linear-gradient(
+        45deg,
+        #dc2626,
+        #dc2626 5px,
+        #b91c1c 5px,
+        #b91c1c 10px
+    ) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    animation: none !important;
+    box-shadow: none !important;
+}

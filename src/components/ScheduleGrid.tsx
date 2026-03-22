@@ -407,28 +407,39 @@ export default function ScheduleGrid() {
                     {recurrentRules.map(rule => {
                         const dayName = DAYS_OF_WEEK[rule.day_of_week];
                         const timeName = TIME_SLOTS.find(t => t.id === rule.hour)?.label || 'Unknown';
-                        let subInfo = "";
+                        
+                        let dateRange = "";
                         if (rule.start_date_idx > 20240101 || rule.end_date_idx < 20991231) {
-                            subInfo = ` (Date Limited)`;
+                            const sStr = String(rule.start_date_idx);
+                            const eStr = String(rule.end_date_idx);
+                            const startFmt = `${sStr.substring(6,8)}/${sStr.substring(4,6)}`;
+                            const endFmt = `${eStr.substring(6,8)}/${eStr.substring(4,6)}`;
+                            dateRange = ` (${startFmt} - ${endFmt})`;
                         }
+
                         return (
                             <span key={rule.id} style={{
                                 background: 'rgba(239, 68, 68, 0.1)',
                                 border: '1px solid rgba(239, 68, 68, 0.3)',
                                 color: '#f87171',
-                                padding: '4px 10px',
-                                borderRadius: '12px',
+                                padding: '6px 14px',
+                                borderRadius: '16px',
                                 fontSize: '0.85rem',
                                 display: 'flex',
                                 alignItems: 'center',
-                                gap: '6px'
+                                gap: '8px',
+                                transition: 'all 0.2s'
                             }}>
-                                {dayName} {timeName}{subInfo}
+                                <span style={{ fontWeight: 600 }}>{dayName} {timeName}</span>
+                                <span style={{ opacity: 0.7, fontSize: '0.75rem' }}>{dateRange}</span>
                                 <button
                                     onClick={() => removeRecurrentRule(rule.id)}
+                                    title="Remove Rule"
                                     style={{
-                                        background: 'transparent', border: 'none', color: '#f87171', 
-                                        cursor: 'pointer', fontSize: '1rem', lineHeight: 1
+                                        background: 'rgba(239, 68, 68, 0.2)', border: 'none', color: '#f87171', 
+                                        cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1,
+                                        width: '20px', height: '20px', borderRadius: '50%',
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
                                     }}
                                 >×</button>
                             </span>
