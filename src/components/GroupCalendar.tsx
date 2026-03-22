@@ -339,7 +339,9 @@ export default function GroupCalendar() {
     };
 
     const getMatchesCount = (dbIndex: number, hour: number) => {
-        const busyCount = data.filter(d => d.day_index === dbIndex && d.hour === hour).length;
+        const busyInSlot = data.filter(d => d.day_index === dbIndex && d.hour === hour);
+        const busyUserIds = new Set(busyInSlot.map(d => d.user_id));
+        const busyCount = busyUserIds.size;
         return userCount - busyCount;
     };
 
