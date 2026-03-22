@@ -80,8 +80,12 @@ export default function GroupsManager() {
 
     async function deleteGroup(id: string) {
         if (!confirm("Are you sure? This will delete the group and remove all members.")) return;
-        await supabase.from("groups").delete().eq("id", id);
-        fetchData();
+        const { error } = await supabase.from("groups").delete().eq("id", id);
+        if (error) {
+            alert(`Error deleting group: ${error.message}`);
+        } else {
+            fetchData();
+        }
     }
 
     async function updateMissingCount(id: string, count: number) {
