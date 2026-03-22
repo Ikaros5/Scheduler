@@ -267,29 +267,28 @@
     background: rgba(255,255,255,0.05);
     border: 1px solid rgba(255,255,255,0.1);
     color: var(--text-secondary);
-    padding: 8px 14px;
+    padding: 8px 16px;
     border-radius: 10px;
     cursor: pointer;
     font-size: 0.8rem;
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    min-width: 45px;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+    min-width: 60px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;
+    box-sizing: border-box; /* Crucial to keep size exact */
 }
 
 .dayBtn:hover, .hourBtn:hover {
     background: rgba(255,255,255,0.1);
     border-color: rgba(255,255,255,0.2);
-    transform: translateY(-1px);
 }
 
 .activeDayBtn, .hourBtnActive {
     background: linear-gradient(135deg, #ef4444 0%, #cc1d1d 100%) !important;
-    border-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: rgba(255, 255, 255, 0.2) !important;
     color: white !important;
-    font-weight: 600;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
 }
 
 .ruleItem {
