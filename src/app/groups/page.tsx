@@ -14,7 +14,7 @@ export default async function GroupsPage() {
     }
 
     // Security: Only allow exact admin email
-    if (user.email !== 'isaac.bassas@gmail.com') {
+    if (user.email !== 'admin@dnd.com') {
         redirect("/myschedule");
     }
 

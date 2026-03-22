@@ -60,7 +60,7 @@ export default function Navbar() {
                         >
                             Calendar
                         </Link>
-                        {user.email === 'isaac.bassas@gmail.com' && (
+                        {user.email === 'admin@dnd.com' && (
                             <Link
                                 href="/groups"
                                 className={`${styles.navLink} ${pathname === "/groups" ? styles.activeNavLink : ""}`}
