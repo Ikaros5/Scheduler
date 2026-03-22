@@ -144,6 +144,9 @@ export default function GroupCalendar() {
                 const currentGroupMembers = (memberData || []) as any[];
                 const uniqueMembersMap = new Map();
                 currentGroupMembers.forEach(m => {
+                    // Filter out the admin from scheduling logic
+                    if (m.profiles?.email === 'admin@dnd.com') return;
+
                     if (!uniqueMembersMap.has(m.user_id)) {
                         uniqueMembersMap.set(m.user_id, { ...m });
                     } else if (m.role === 'dm') {
@@ -175,6 +178,9 @@ export default function GroupCalendar() {
             const currentGroupMembers = (memberData || []) as any[];
             const uniqueMembersMap = new Map();
             currentGroupMembers.forEach(m => {
+                // Filter out the admin from scheduling logic
+                if (m.profiles?.email === 'admin@dnd.com') return;
+
                 if (!uniqueMembersMap.has(m.user_id)) {
                     uniqueMembersMap.set(m.user_id, { ...m });
                 } else if (m.role === 'dm') {
