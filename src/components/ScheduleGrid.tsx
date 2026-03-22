@@ -407,15 +407,15 @@ export default function ScheduleGrid() {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>2. Select Days</label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
-                            {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                            {[1, 2, 3, 4, 5, 6, 0].map((dayIdx) => (
                                 <button
-                                    key={i}
-                                    onClick={() => toggleDaySelection(i)}
-                                    className={newRecDays.includes(i) ? styles.activeDayBtn : styles.dayBtn}
-                                    title={DAYS_OF_WEEK[i]}
+                                    key={dayIdx}
+                                    onClick={() => toggleDaySelection(dayIdx)}
+                                    className={newRecDays.includes(dayIdx) ? styles.activeDayBtn : styles.dayBtn}
+                                    title={DAYS_OF_WEEK[dayIdx]}
                                 >
-                                    {day}
+                                    {DAYS_OF_WEEK[dayIdx].substring(0, 3)}
                                 </button>
                             ))}
                         </div>
@@ -423,7 +423,7 @@ export default function ScheduleGrid() {
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>3. Select Slots</label>
-                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
                             {TIME_SLOTS.map(t => (
                                 <button
                                     key={t.id}
