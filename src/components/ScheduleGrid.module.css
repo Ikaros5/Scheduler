@@ -289,6 +289,7 @@
     background: linear-gradient(135deg, #ef4444 0%, #cc1d1d 100%) !important;
     border-color: rgba(255, 255, 255, 0.2) !important;
     color: white !important;
+    border-radius: 10px !important;
 }
 
 .ruleItem {
