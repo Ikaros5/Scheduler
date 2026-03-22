@@ -213,7 +213,7 @@ export default function GroupCalendar() {
                 : Promise.resolve({ data: [] });
 
             const recurrentPromise = memberIds.length > 0
-                ? supabase.from("recurrent_unavailability").select("user_id, day_of_week, hour, start_date_idx, end_date_idx").in("user_id", memberIds)
+                ? supabase.from("recurrent_unavailability").select("user_id, rule_name, days_of_week, hours, start_date_idx, end_date_idx").in("user_id", memberIds)
                 : Promise.resolve({ data: [] });
 
             const [availResult, sessionResult, allMembershipsRes, recurrentRes] = await Promise.all([
@@ -260,15 +260,21 @@ export default function GroupCalendar() {
             }
 
             if (recurrentRes.data) {
-                recurrentRes.data.forEach((rStatus: any) => {
-                    const dayMeta = weekDays.find(d => d.dayOfWeek === rStatus.day_of_week && d.dbIndex >= rStatus.start_date_idx && d.dbIndex <= rStatus.end_date_idx);
-                    if (dayMeta) {
-                        extraBusyData.push({
-                            user_id: rStatus.user_id,
-                            day_index: dayMeta.dbIndex,
-                            hour: rStatus.hour
-                        });
-                    }
+                recurrentRes.data.forEach((rRule: any) => {
+                    weekDays.forEach(day => {
+                        if (rRule.days_of_week.includes(day.dayOfWeek) && 
+                            day.dbIndex >= rRule.start_date_idx && 
+                            day.dbIndex <= rRule.end_date_idx) {
+                            
+                            rRule.hours.forEach((h: number) => {
+                                extraBusyData.push({
+                                    user_id: rRule.user_id,
+                                    day_index: day.dbIndex,
+                                    hour: h
+                                });
+                            });
+                        }
+                    });
                 });
             }
 

@@ -262,3 +262,102 @@
     animation: none !important;
     box-shadow: none !important;
 }
+
+.dayBtn, .hourBtn {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: var(--text-secondary);
+    padding: 6px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    transition: all 0.2s;
+    min-width: 38px;
+}
+
+.dayBtn:hover, .hourBtn:hover {
+    background: rgba(255,255,255,0.1);
+    border-color: rgba(255,255,255,0.2);
+}
+
+.activeDayBtn, .hourBtnActive {
+    background: rgba(239, 68, 68, 0.2) !important;
+    border-color: rgba(239, 68, 68, 0.5) !important;
+    color: #f87171 !important;
+    font-weight: 600;
+}
+
+.ruleItem {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 1rem;
+    border-radius: 12px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    transition: transform 0.2s;
+}
+
+.ruleItem:hover {
+    background: rgba(255,255,255,0.05);
+    transform: translateX(4px);
+}
+
+.ruleMain {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.ruleHeaderInfo {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.ruleNameTag {
+    font-weight: 700;
+    color: #fca5a5;
+    font-size: 0.9rem;
+    letter-spacing: 0.02em;
+}
+
+.ruleDateTag {
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    background: rgba(255,255,255,0.05);
+    padding: 2px 8px;
+    border-radius: 4px;
+}
+
+.ruleDetails {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.ruleSeparator {
+    opacity: 0.3;
+}
+
+.ruleDeleteBtn {
+    background: rgba(239, 68, 68, 0.1);
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    color: #f87171;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.ruleDeleteBtn:hover {
+    background: #ef4444;
+    color: white;
+}

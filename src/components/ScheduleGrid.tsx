@@ -34,8 +34,9 @@ const DAYS_OF_WEEK = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "F
 
 interface RecurrentRule {
     id: string;
-    day_of_week: number;
-    hour: number;
+    rule_name: string;
+    days_of_week: number[];
+    hours: number[];
     start_date_idx: number;
     end_date_idx: number;
 }
@@ -45,10 +46,14 @@ export default function ScheduleGrid() {
     const [weekStart, setWeekStart] = useState<Date>(getMonday(new Date()));
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const [recurrentRules, setRecurrentRules] = useState<RecurrentRule[]>([]);
-    const [newRecDay, setNewRecDay] = useState(0);
-    const [newRecHour, setNewRecHour] = useState(18);
+    
+    // New rule creation state
+    const [newRecName, setNewRecName] = useState("");
+    const [newRecDays, setNewRecDays] = useState<number[]>([]);
+    const [newRecHours, setNewRecHours] = useState<number[]>([]);
     const [newRecStart, setNewRecStart] = useState("");
     const [newRecEnd, setNewRecEnd] = useState("");
+
     const [isDragging, setIsDragging] = useState(false);
     const [dragMode, setDragMode] = useState<"add" | "remove">("add");
     const [saving, setSaving] = useState(false);
@@ -64,8 +69,10 @@ export default function ScheduleGrid() {
     const recurrentSet = new Set<string>();
     recurrentRules.forEach(r => {
         weekDays.forEach(d => {
-            if (d.dayOfWeek === r.day_of_week && d.dbIndex >= r.start_date_idx && d.dbIndex <= r.end_date_idx) {
-                recurrentSet.add(`${d.dayOfWeek}-${r.hour}`);
+            if (r.days_of_week.includes(d.dayOfWeek) && d.dbIndex >= r.start_date_idx && d.dbIndex <= r.end_date_idx) {
+                r.hours.forEach(h => {
+                    recurrentSet.add(`${d.dbIndex}-${h}`);
+                });
             }
         });
     });
@@ -136,12 +143,9 @@ export default function ScheduleGrid() {
             .lte("day_index", endRange);
 
         const inserts = Array.from(selected).filter(key => {
+            if (recurrentSet.has(key)) return false; // Don't save if recurrent handles it
             const [dbIndex, hour] = key.split("-").map(Number);
             const dayMeta = weekDays.find(d => d.dbIndex === dbIndex);
-            
-            // Do not save manual inserts if they are already covered by recurrent rule to save space
-            if (dayMeta && recurrentSet.has(`${dayMeta.dayOfWeek}-${hour}`)) return false;
-
             return dayMeta ? isSlotValidAndFuture(dayMeta.date, hour) : false;
         }).map(key => {
             const [day_index, hour] = key.split("-").map(Number);
@@ -157,17 +161,26 @@ export default function ScheduleGrid() {
         setSaving(false);
     };
 
+    const toggleDaySelection = (day: number) => {
+        setNewRecDays(prev => prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]);
+    };
+
+    const toggleHourSelection = (hour: number) => {
+        setNewRecHours(prev => prev.includes(hour) ? prev.filter(h => h !== hour) : [...prev, hour]);
+    };
+
     const addRecurrentRule = async () => {
         if (!user) return;
+        if (!newRecName.trim() || newRecDays.length === 0 || newRecHours.length === 0) {
+            alert("Please provide a name, at least one day, and at least one time slot.");
+            return;
+        }
 
         let startIdx = 20240101;
         let endIdx = 20991231;
-        if (newRecStart) {
-            startIdx = parseInt(newRecStart.replace(/-/g, ''));
-        }
-        if (newRecEnd) {
-            endIdx = parseInt(newRecEnd.replace(/-/g, ''));
-        }
+        if (newRecStart) startIdx = parseInt(newRecStart.replace(/-/g, ''));
+        if (newRecEnd) endIdx = parseInt(newRecEnd.replace(/-/g, ''));
+        
         if (endIdx < startIdx) {
             alert("End date cannot be before start date!");
             return;
@@ -175,17 +188,23 @@ export default function ScheduleGrid() {
 
         const { error } = await supabase.from("recurrent_unavailability").insert({
             user_id: user.id,
-            day_of_week: newRecDay,
-            hour: newRecHour,
+            rule_name: newRecName.trim(),
+            days_of_week: newRecDays,
+            hours: newRecHours,
             start_date_idx: startIdx,
             end_date_idx: endIdx
         });
 
         if (error) {
-            alert("This rule already exists or an error occurred.");
+            alert("An error occurred: " + error.message);
         } else {
             const { data } = await supabase.from("recurrent_unavailability").select("*").eq("user_id", user.id);
             if (data) setRecurrentRules(data);
+            setNewRecName("");
+            setNewRecDays([]);
+            setNewRecHours([]);
+            setNewRecStart("");
+            setNewRecEnd("");
         }
     };
 
@@ -213,7 +232,7 @@ export default function ScheduleGrid() {
 
     const toggleCell = (day: typeof weekDays[0], hour: number) => {
         if (!isSlotValidAndFuture(day.date, hour)) return;
-        if (recurrentSet.has(`${day.dayOfWeek}-${hour}`)) return; // Blocked by recurrent
+        if (recurrentSet.has(`${day.dbIndex}-${hour}`)) return;
 
         const key = `${day.dbIndex}-${hour}`;
         const mode = selected.has(key) ? "remove" : "add";
@@ -235,7 +254,7 @@ export default function ScheduleGrid() {
     const handleMouseEnter = (day: typeof weekDays[0], hour: number) => {
         if (!isDragging || !isSlotValidAndFuture(day.date, hour)) return;
         if (isTouchInteraction.current) return;
-        if (recurrentSet.has(`${day.dayOfWeek}-${hour}`)) return;
+        if (recurrentSet.has(`${day.dbIndex}-${hour}`)) return;
 
         const key = `${day.dbIndex}-${hour}`;
         const newSelected = new Set(selected);
@@ -263,7 +282,7 @@ export default function ScheduleGrid() {
             const hour = parseInt(element.dataset.hour);
             const dayMeta = weekDays.find(d => d.dbIndex === dayIdx);
 
-            if (dayMeta && isSlotValidAndFuture(dayMeta.date, hour) && !recurrentSet.has(`${dayMeta.dayOfWeek}-${hour}`)) {
+            if (dayMeta && isSlotValidAndFuture(dayMeta.date, hour) && !recurrentSet.has(`${dayIdx}-${hour}`)) {
                 const key = `${dayIdx}-${hour}`;
                 const newSelected = new Set(selected);
                 if (dragMode === "add") newSelected.add(key);
@@ -306,7 +325,6 @@ export default function ScheduleGrid() {
                         </div>
                         <button onClick={() => navigateWeek(1)} className={styles.navBtn}>→</button>
                     </div>
-                    <p className={styles.subtext}>Painted slots are times you are NOT available.</p>
                 </div>
 
                 <div className={styles.gridBodyWrapper}>
@@ -332,15 +350,15 @@ export default function ScheduleGrid() {
                                     {weekDays.map((day) => {
                                         const validAndFuture = isSlotValidAndFuture(day.date, hour);
                                         const key = `${day.dbIndex}-${hour}`;
-                                        const isRecurrent = recurrentSet.has(`${day.dayOfWeek}-${hour}`);
-                                        const isSelected = selected.has(key) || isRecurrent;
+                                        const isRecurrent = recurrentSet.has(key);
+                                        const isSelected = selected.has(key);
                                         
                                         return (
                                             <div
                                                 key={key}
                                                 data-day={day.dbIndex}
                                                 data-hour={hour}
-                                                className={`${styles.cell} ${isSelected ? styles.active : ""} ${!validAndFuture ? styles.disabled : ""} ${isRecurrent ? styles.recurrentCell : ""}`}
+                                                className={`${styles.cell} ${isSelected || isRecurrent ? styles.active : ""} ${!validAndFuture ? styles.disabled : ""} ${isRecurrent ? styles.recurrentCell : ""}`}
                                                 onMouseDown={() => handleMouseDown(day, hour)}
                                                 onMouseEnter={() => handleMouseEnter(day, hour)}
                                                 onTouchStart={(e) => handleTouchStart(e, day, hour)}
@@ -354,7 +372,7 @@ export default function ScheduleGrid() {
                 </div>
 
                 <div className={styles.footer}>
-                    <p>{loading ? "Loading..." : `${selected.size + recurrentRules.length * 4} busy slots marked`}</p>
+                    <p>{loading ? "Loading..." : `${selected.size + recurrentSet.size} busy slots marked`}</p>
                     <div className={styles.buttonWrapper}>
                         <button
                             className="btn-primary"
@@ -370,82 +388,102 @@ export default function ScheduleGrid() {
 
             <div className={`glass-card ${styles.wrapper}`}>
                 <div className={styles.monthHeader} style={{ marginBottom: '1rem', borderBottom: 'none' }}>
-                    <h3>Recurrent Unavailability</h3>
-                    <p className={styles.subtext}>Select a general time you can NEVER meet (e.g. Sunday Afternoons). This will permanently block it out in red.</p>
+                    <h3>Add Recurrent Block</h3>
+                    <p className={styles.subtext}>Quickly block out periods you are never available (e.g. Work, Gym, Sleep).</p>
                 </div>
-                <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: '1.5rem' }}>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Day of the Week</label>
-                        <select className={styles.selectField} value={newRecDay} onChange={(e) => setNewRecDay(Number(e.target.value))}>
-                            {DAYS_OF_WEEK.map((day, i) => (
-                                <option key={i} value={i}>{day}</option>
-                            ))}
-                        </select>
+                
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>1. Give it a name</label>
+                        <input 
+                            type="text" 
+                            className={styles.selectField} 
+                            placeholder="e.g. Work Schedule" 
+                            value={newRecName} 
+                            onChange={(e) => setNewRecName(e.target.value)} 
+                            style={{ width: '100%' }}
+                        />
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Time Slot</label>
-                        <select className={styles.selectField} value={newRecHour} onChange={(e) => setNewRecHour(Number(e.target.value))}>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>2. Select Days</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {["S", "M", "T", "W", "T", "F", "S"].map((day, i) => (
+                                <button
+                                    key={i}
+                                    onClick={() => toggleDaySelection(i)}
+                                    className={newRecDays.includes(i) ? styles.activeDayBtn : styles.dayBtn}
+                                    title={DAYS_OF_WEEK[i]}
+                                >
+                                    {day}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>3. Select Slots</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                             {TIME_SLOTS.map(t => (
-                                <option key={t.id} value={t.id}>{t.label} ({t.subtext})</option>
+                                <button
+                                    key={t.id}
+                                    onClick={() => toggleHourSelection(t.id)}
+                                    className={newRecHours.includes(t.id) ? styles.hourBtnActive : styles.hourBtn}
+                                >
+                                    {t.label}
+                                </button>
                             ))}
-                        </select>
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>Start (Optional)</label>
-                        <input type="date" className={styles.selectField} value={newRecStart} onChange={(e) => setNewRecStart(e.target.value)} style={{ minWidth: 'auto'}} />
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+                        <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>4. Duration (Optional)</label>
+                        <div style={{ display: 'flex', gap: '8px' }}>
+                            <input type="date" className={styles.selectField} value={newRecStart} onChange={(e) => setNewRecStart(e.target.value)} style={{ padding: '6px', minWidth: '0', flex: 1 }} />
+                            <input type="date" className={styles.selectField} value={newRecEnd} onChange={(e) => setNewRecEnd(e.target.value)} style={{ padding: '6px', minWidth: '0', flex: 1 }} />
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem' }}>
-                        <label style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>End (Optional)</label>
-                        <input type="date" className={styles.selectField} value={newRecEnd} onChange={(e) => setNewRecEnd(e.target.value)} style={{ minWidth: 'auto'}} />
-                    </div>
-                    <button className="btn-primary" style={{ padding: '8px 16px', height: 'fit-content' }} onClick={addRecurrentRule}>
-                        Add Block
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'flex-end', borderTop: '1px solid rgba(255,255,255,0.05)', paddingTop: '1.5rem' }}>
+                    <button className="btn-primary" style={{ padding: '10px 24px' }} onClick={addRecurrentRule}>
+                        Add Recurrent Rule
                     </button>
                 </div>
 
-                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                    {recurrentRules.map(rule => {
-                        const dayName = DAYS_OF_WEEK[rule.day_of_week];
-                        const timeName = TIME_SLOTS.find(t => t.id === rule.hour)?.label || 'Unknown';
-                        
-                        let dateRange = "";
-                        if (rule.start_date_idx > 20240101 || rule.end_date_idx < 20991231) {
-                            const sStr = String(rule.start_date_idx);
-                            const eStr = String(rule.end_date_idx);
-                            const startFmt = `${sStr.substring(6,8)}/${sStr.substring(4,6)}`;
-                            const endFmt = `${eStr.substring(6,8)}/${eStr.substring(4,6)}`;
-                            dateRange = ` (${startFmt} - ${endFmt})`;
-                        }
+                <div style={{ marginTop: '2.5rem' }}>
+                    <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem', opacity: 0.8 }}>Existing Rules</h4>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                        {recurrentRules.map(rule => {
+                            const daysList = rule.days_of_week.map(d => DAYS_OF_WEEK[d].substring(0,3)).join(', ');
+                            const hoursList = rule.hours.map(h => TIME_SLOTS.find(t => t.id === h)?.label).join(', ');
+                            
+                            let dateRange = "Forever";
+                            if (rule.start_date_idx > 20240101 || rule.end_date_idx < 20991231) {
+                                const sStr = String(rule.start_date_idx);
+                                const eStr = String(rule.end_date_idx);
+                                dateRange = `${sStr.substring(6,8)}/${sStr.substring(4,6)} - ${eStr.substring(6,8)}/${eStr.substring(4,6)}`;
+                            }
 
-                        return (
-                            <span key={rule.id} style={{
-                                background: 'rgba(239, 68, 68, 0.1)',
-                                border: '1px solid rgba(239, 68, 68, 0.3)',
-                                color: '#f87171',
-                                padding: '6px 14px',
-                                borderRadius: '16px',
-                                fontSize: '0.85rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                transition: 'all 0.2s'
-                            }}>
-                                <span style={{ fontWeight: 600 }}>{dayName} {timeName}</span>
-                                <span style={{ opacity: 0.7, fontSize: '0.75rem' }}>{dateRange}</span>
-                                <button
-                                    onClick={() => removeRecurrentRule(rule.id)}
-                                    title="Remove Rule"
-                                    style={{
-                                        background: 'rgba(239, 68, 68, 0.2)', border: 'none', color: '#f87171', 
-                                        cursor: 'pointer', fontSize: '1.2rem', lineHeight: 1,
-                                        width: '20px', height: '20px', borderRadius: '50%',
-                                        display: 'flex', alignItems: 'center', justifyContent: 'center'
-                                    }}
-                                >×</button>
-                            </span>
-                        );
-                    })}
-                    {recurrentRules.length === 0 && <p className={styles.subtext}>No recurrent rules added yet.</p>}
+                            return (
+                                <div key={rule.id} className={styles.ruleItem}>
+                                    <div className={styles.ruleMain}>
+                                        <div className={styles.ruleHeaderInfo}>
+                                            <span className={styles.ruleNameTag}>{rule.rule_name}</span>
+                                            <span className={styles.ruleDateTag}>{dateRange}</span>
+                                        </div>
+                                        <div className={styles.ruleDetails}>
+                                            <span className={styles.ruleDays}>{daysList}</span>
+                                            <span className={styles.ruleSeparator}>•</span>
+                                            <span className={styles.ruleHours}>{hoursList}</span>
+                                        </div>
+                                    </div>
+                                    <button onClick={() => removeRecurrentRule(rule.id)} className={styles.ruleDeleteBtn}>×</button>
+                                </div>
+                            );
+                        })}
+                        {recurrentRules.length === 0 && <p className={styles.subtext}>No recurrent rules added yet.</p>}
+                    </div>
                 </div>
             </div>
         </div>
