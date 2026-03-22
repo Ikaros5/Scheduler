@@ -41,10 +41,11 @@ export default function NotificationToggle() {
         setError(null);
 
         try {
-            const registration = await navigator.serviceWorker.register("/sw.js");
-            await navigator.serviceWorker.ready;
+            // Register the SW, then wait for a fully active registration
+            await navigator.serviceWorker.register("/sw.js");
+            const readyRegistration = await navigator.serviceWorker.ready;
 
-            const subscription = await registration.pushManager.subscribe({
+            const subscription = await readyRegistration.pushManager.subscribe({
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(
                     process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY!
