@@ -412,7 +412,7 @@ export default function ScheduleGrid() {
                                 <button
                                     key={dayIdx}
                                     onClick={() => toggleDaySelection(dayIdx)}
-                                    className={newRecDays.includes(dayIdx) ? styles.activeDayBtn : styles.dayBtn}
+                                    className={`${styles.dayBtn} ${newRecDays.includes(dayIdx) ? styles.activeDayBtn : ''}`}
                                     title={DAYS_OF_WEEK[dayIdx]}
                                 >
                                     {DAYS_OF_WEEK[dayIdx].substring(0, 3)}
@@ -428,7 +428,7 @@ export default function ScheduleGrid() {
                                 <button
                                     key={t.id}
                                     onClick={() => toggleHourSelection(t.id)}
-                                    className={newRecHours.includes(t.id) ? styles.hourBtnActive : styles.hourBtn}
+                                    className={`${styles.hourBtn} ${newRecHours.includes(t.id) ? styles.hourBtnActive : ''}`}
                                 >
                                     {t.label}
                                 </button>
