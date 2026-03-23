@@ -461,3 +461,8 @@
     opacity: 0.5;
     cursor: not-allowed;
 }
+
+.loginDot {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}

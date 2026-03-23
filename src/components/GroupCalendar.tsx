@@ -61,7 +61,8 @@ interface MemberActivity {
     display_name: string;
     email: string;
     role: string;
-    last_updated: string | null;
+    last_sign_in: string | null;
+    last_availability_update: string | null;
 }
 
 
@@ -366,44 +367,47 @@ export default function GroupCalendar() {
 
     // Build member activity table whenever groupMembers changes
     useEffect(() => {
-        if (groupMembers.length === 0) {
+        if (groupMembers.length === 0 || !selectedGroupId) {
             setMemberActivity([]);
             return;
         }
+
         async function fetchActivity() {
-            const memberIds = groupMembers.map(m => m.user_id);
-            // Get the latest updated_at for each member's availability rows
-            const { data: rows } = await supabase
-                .from('availability')
-                .select('user_id, created_at')
-                .in('user_id', memberIds)
-                .order('created_at', { ascending: false });
+            let activityData: MemberActivity[] = [];
 
-            const latestByUser: Record<string, string> = {};
-            (rows || []).forEach((r: any) => {
-                if (!latestByUser[r.user_id]) latestByUser[r.user_id] = r.created_at;
+            if (selectedGroupId === 'all') {
+                // Combine activity for all groups
+                const groupIds = groups.map(g => g.id);
+                for (const gid of groupIds) {
+                    const { data: rows } = await supabase.rpc('get_group_members_activity', { target_group_id: gid });
+                    (rows || []).forEach((r: any) => {
+                        const existing = activityData.find(a => a.user_id === r.user_id);
+                        if (!existing) {
+                            activityData.push(r as MemberActivity);
+                        } else if (r.role === 'dm') {
+                            existing.role = 'dm';
+                        }
+                    });
+                }
+            } else {
+                const { data: rows } = await supabase.rpc('get_group_members_activity', { target_group_id: selectedGroupId });
+                activityData = (rows || []) as MemberActivity[];
+            }
+
+            // Global filter: Remove admin from activity table
+            activityData = activityData.filter(m => m.email !== 'admin@dnd.com');
+
+            // Sort: oldest/never updated first
+            activityData.sort((a, b) => {
+                const aTime = a.last_availability_update ? new Date(a.last_availability_update).getTime() : 0;
+                const bTime = b.last_availability_update ? new Date(b.last_availability_update).getTime() : 0;
+                return aTime - bTime;
             });
 
-            const activity: MemberActivity[] = groupMembers.map(m => ({
-                user_id: m.user_id,
-                display_name: m.profiles?.display_name || 'Anonymous',
-                email: m.profiles?.email || '',
-                role: m.role,
-                last_updated: latestByUser[m.user_id] || null,
-            }));
-
-            // Sort: never-updated first, then oldest update first
-            activity.sort((a, b) => {
-                if (!a.last_updated && !b.last_updated) return 0;
-                if (!a.last_updated) return -1;
-                if (!b.last_updated) return 1;
-                return new Date(a.last_updated).getTime() - new Date(b.last_updated).getTime();
-            });
-
-            setMemberActivity(activity);
+            setMemberActivity(activityData);
         }
         fetchActivity();
-    }, [groupMembers]);
+    }, [groupMembers, selectedGroupId, groups]);
 
     async function remindUser(userId: string) {
         setRemindingUserId(userId);
@@ -424,15 +428,33 @@ export default function GroupCalendar() {
     }
 
     function formatLastUpdated(iso: string | null): string {
-        if (!iso) return 'Never updated';
+        if (!iso) return 'Never';
+        
+        // Force comparison in Europe/Madrid timezone
         const d = new Date(iso);
-        const now = new Date();
-        const diffMs = now.getTime() - d.getTime();
+        const options: Intl.DateTimeFormatOptions = { 
+            timeZone: 'Europe/Madrid',
+            year: 'numeric',
+            month: 'short',
+            day: '2-digit'
+        };
+        
+        const nowInSpain = new Intl.DateTimeFormat('en-GB', { ...options, hour: 'numeric' }).format(new Date());
+        const dInSpain = new Intl.DateTimeFormat('en-GB', options).format(d);
+        
+        const today = new Intl.DateTimeFormat('en-GB', options).format(new Date());
+        const yesterdayDate = new Date();
+        yesterdayDate.setDate(yesterdayDate.getDate() - 1);
+        const yesterday = new Intl.DateTimeFormat('en-GB', options).format(yesterdayDate);
+
+        if (dInSpain === today) return 'Today';
+        if (dInSpain === yesterday) return 'Yesterday';
+
+        const diffMs = new Date().getTime() - d.getTime();
         const diffDays = Math.floor(diffMs / 86400000);
-        if (diffDays === 0) return 'Today';
-        if (diffDays === 1) return 'Yesterday';
-        if (diffDays < 7) return `${diffDays} days ago`;
-        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+        if (diffDays < 7 && diffDays > 0) return `${diffDays} days ago`;
+
+        return dInSpain;
     }
 
     // Remove the blocking loading screen to make navigation instant.
@@ -553,19 +575,20 @@ export default function GroupCalendar() {
 
             {memberActivity.length > 0 && (
                 <div className={styles.activitySection}>
-                    <h4 className={styles.activityTitle}>Member Schedule Activity</h4>
+                    <h4 className={styles.activityTitle}>Member Activity (Spain Time)</h4>
                     <table className={styles.activityTable}>
                         <thead>
                             <tr>
                                 <th>Member</th>
                                 <th>Role</th>
+                                <th>Last Login</th>
                                 <th>Last Updated</th>
                                 {isAdmin && <th>Actions</th>}
                             </tr>
                         </thead>
                         <tbody>
                             {memberActivity.map(m => {
-                                const isStale = !m.last_updated || (new Date().getTime() - new Date(m.last_updated).getTime()) > 7 * 86400000;
+                                const isStale = !m.last_availability_update || (new Date().getTime() - new Date(m.last_availability_update).getTime()) > 7 * 86400000;
                                 return (
                                     <tr key={m.user_id} className={isStale ? styles.staleRow : ''}>
                                         <td>
@@ -585,8 +608,13 @@ export default function GroupCalendar() {
                                             </span>
                                         </td>
                                         <td>
+                                            <span className={styles.loginDot}>
+                                                {formatLastUpdated(m.last_sign_in)}
+                                            </span>
+                                        </td>
+                                        <td>
                                             <span className={isStale ? styles.staleDot : styles.freshDot}>
-                                                {formatLastUpdated(m.last_updated)}
+                                                {formatLastUpdated(m.last_availability_update)}
                                             </span>
                                         </td>
                                         {isAdmin && (
