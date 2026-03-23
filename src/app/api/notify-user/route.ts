@@ -27,14 +27,16 @@ export async function POST(request: Request) {
             process.env.VAPID_PRIVATE_KEY!
         );
 
-        const { data: subRow } = await supabase
+        const { data: subRow, error: subError } = await supabase
             .from('push_subscriptions')
             .select('subscription')
             .eq('user_id', userId)
-            .single();
+            .maybeSingle();
+
+        if (subError) throw subError;
 
         if (!subRow) {
-            return NextResponse.json({ success: false, message: 'User has no push subscription' });
+            return NextResponse.json({ success: false, message: 'User has no push subscription — they may not have enabled notifications yet.' });
         }
 
         await webpush.sendNotification(
