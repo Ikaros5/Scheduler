@@ -56,6 +56,14 @@ interface GroupMember {
         email: string;
     };
 }
+interface MemberActivity {
+    user_id: string;
+    display_name: string;
+    email: string;
+    role: string;
+    last_updated: string | null;
+}
+
 
 export default function GroupCalendar() {
     const [weekStart, setWeekStart] = useState<Date>(getMonday(new Date()));
@@ -68,6 +76,9 @@ export default function GroupCalendar() {
     const [userCount, setUserCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [cache, setCache] = useState<Record<string, { data: AvailabilityData[], sessions: GroupSession[] }>>({});
+    const [isAdmin, setIsAdmin] = useState(false);
+    const [memberActivity, setMemberActivity] = useState<MemberActivity[]>([]);
+    const [remindingUserId, setRemindingUserId] = useState<string | null>(null);
     const dateInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
 
@@ -82,6 +93,8 @@ export default function GroupCalendar() {
                 setLoading(false);
                 return;
             }
+
+            setIsAdmin(user.email === 'admin@dnd.com');
 
             // Fetch groups where the user is a member
             const { data: memberData } = await supabase
@@ -351,6 +364,77 @@ export default function GroupCalendar() {
         return userCount - busyCount;
     };
 
+    // Build member activity table whenever groupMembers changes
+    useEffect(() => {
+        if (groupMembers.length === 0) {
+            setMemberActivity([]);
+            return;
+        }
+        async function fetchActivity() {
+            const memberIds = groupMembers.map(m => m.user_id);
+            // Get the latest updated_at for each member's availability rows
+            const { data: rows } = await supabase
+                .from('availability')
+                .select('user_id, created_at')
+                .in('user_id', memberIds)
+                .order('created_at', { ascending: false });
+
+            const latestByUser: Record<string, string> = {};
+            (rows || []).forEach((r: any) => {
+                if (!latestByUser[r.user_id]) latestByUser[r.user_id] = r.created_at;
+            });
+
+            const activity: MemberActivity[] = groupMembers.map(m => ({
+                user_id: m.user_id,
+                display_name: m.profiles?.display_name || 'Anonymous',
+                email: m.profiles?.email || '',
+                role: m.role,
+                last_updated: latestByUser[m.user_id] || null,
+            }));
+
+            // Sort: never-updated first, then oldest update first
+            activity.sort((a, b) => {
+                if (!a.last_updated && !b.last_updated) return 0;
+                if (!a.last_updated) return -1;
+                if (!b.last_updated) return 1;
+                return new Date(a.last_updated).getTime() - new Date(b.last_updated).getTime();
+            });
+
+            setMemberActivity(activity);
+        }
+        fetchActivity();
+    }, [groupMembers]);
+
+    async function remindUser(userId: string) {
+        setRemindingUserId(userId);
+        try {
+            const res = await fetch('/api/notify-user', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId }),
+            });
+            const result = await res.json();
+            if (!res.ok) throw new Error(result.error || 'Failed');
+            alert('Reminder sent! ✅');
+        } catch (err: any) {
+            alert(`Could not send reminder: ${err.message}`);
+        } finally {
+            setRemindingUserId(null);
+        }
+    }
+
+    function formatLastUpdated(iso: string | null): string {
+        if (!iso) return 'Never updated';
+        const d = new Date(iso);
+        const now = new Date();
+        const diffMs = now.getTime() - d.getTime();
+        const diffDays = Math.floor(diffMs / 86400000);
+        if (diffDays === 0) return 'Today';
+        if (diffDays === 1) return 'Yesterday';
+        if (diffDays < 7) return `${diffDays} days ago`;
+        return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
     // Remove the blocking loading screen to make navigation instant.
     // The calendar will update in the background.
     if (!selectedGroupId && loading) return <div className={styles.loading}>Preparing group schedule...</div>;
@@ -466,6 +550,63 @@ export default function GroupCalendar() {
                     <span>Appointed Session</span>
                 </div>
             </div>
+
+            {memberActivity.length > 0 && (
+                <div className={styles.activitySection}>
+                    <h4 className={styles.activityTitle}>Member Schedule Activity</h4>
+                    <table className={styles.activityTable}>
+                        <thead>
+                            <tr>
+                                <th>Member</th>
+                                <th>Role</th>
+                                <th>Last Updated</th>
+                                {isAdmin && <th>Actions</th>}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {memberActivity.map(m => {
+                                const isStale = !m.last_updated || (new Date().getTime() - new Date(m.last_updated).getTime()) > 7 * 86400000;
+                                return (
+                                    <tr key={m.user_id} className={isStale ? styles.staleRow : ''}>
+                                        <td>
+                                            <div className={styles.memberCell}>
+                                                <div className={styles.memberAvatar}>
+                                                    {(m.display_name || m.email).substring(0, 2).toUpperCase()}
+                                                </div>
+                                                <div>
+                                                    <span className={styles.memberName}>{m.display_name}</span>
+                                                    <span className={styles.memberEmail}>{m.email}</span>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <span className={m.role === 'dm' ? styles.dmBadge : styles.memberBadge}>
+                                                {m.role === 'dm' ? 'DM' : 'Player'}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <span className={isStale ? styles.staleDot : styles.freshDot}>
+                                                {formatLastUpdated(m.last_updated)}
+                                            </span>
+                                        </td>
+                                        {isAdmin && (
+                                            <td>
+                                                <button
+                                                    className={styles.remindBtn}
+                                                    onClick={() => remindUser(m.user_id)}
+                                                    disabled={remindingUserId === m.user_id}
+                                                >
+                                                    {remindingUserId === m.user_id ? 'Sending...' : '🔔 Remind'}
+                                                </button>
+                                            </td>
+                                        )}
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                </div>
+            )}
         </div>
     );
 }
