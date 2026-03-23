@@ -25,6 +25,8 @@ export const viewport: Viewport = {
   maximumScale: 1,
 };
 
+import UserActivityTracker from "@/components/UserActivityTracker";
+
 export default function RootLayout({
   children,
 }: Readonly<{
@@ -33,6 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${fontOutfit.variable} ${fontInter.variable}`}>
       <body>
+        <UserActivityTracker />
         {children}
       </body>
     </html>

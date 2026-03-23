@@ -582,7 +582,7 @@ export default function GroupCalendar() {
                             <tr>
                                 <th>Member</th>
                                 <th>Role</th>
-                                <th>Last Login</th>
+                                <th>Last Active</th>
                                 <th>Last Updated</th>
                                 {isAdmin && (
                                     <>
