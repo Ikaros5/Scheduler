@@ -577,89 +577,91 @@ export default function GroupCalendar() {
             {memberActivity.length > 0 && (
                 <div className={styles.activitySection}>
                     <h4 className={styles.activityTitle}>Member Activity (Spain Time)</h4>
-                    <table className={styles.activityTable}>
-                        <thead>
-                            <tr>
-                                <th>Member</th>
-                                <th>Role</th>
-                                <th>Last Active</th>
-                                <th>Last Updated</th>
-                                {isAdmin && (
-                                    <>
-                                        <th>Push Enabled</th>
-                                        <th>Actions</th>
-                                    </>
-                                )}
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {memberActivity.map(m => {
-                                const isStale = !m.last_availability_update || (new Date().getTime() - new Date(m.last_availability_update).getTime()) > 7 * 86400000;
-                                return (
-                                    <tr key={m.user_id} className={isStale ? styles.staleRow : ''}>
-                                        <td>
-                                            <div className={styles.memberCell}>
-                                                <div className={styles.memberAvatar}>
-                                                    {(m.display_name || m.email).substring(0, 2).toUpperCase()}
+                    <div className={styles.tableResponsive}>
+                        <table className={styles.activityTable}>
+                            <thead>
+                                <tr>
+                                    <th>Member</th>
+                                    <th>Role</th>
+                                    <th>Last Active</th>
+                                    <th>Last Updated</th>
+                                    {isAdmin && (
+                                        <>
+                                            <th>Push Enabled</th>
+                                            <th>Actions</th>
+                                        </>
+                                    )}
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {memberActivity.map(m => {
+                                    const isStale = !m.last_availability_update || (new Date().getTime() - new Date(m.last_availability_update).getTime()) > 7 * 86400000;
+                                    return (
+                                        <tr key={m.user_id} className={isStale ? styles.staleRow : ''}>
+                                            <td>
+                                                <div className={styles.memberCell}>
+                                                    <div className={styles.memberAvatar}>
+                                                        {(m.display_name || m.email).substring(0, 2).toUpperCase()}
+                                                    </div>
+                                                    <div>
+                                                        <span className={styles.memberName}>{m.display_name}</span>
+                                                        <span className={styles.memberEmail}>{m.email}</span>
+                                                    </div>
                                                 </div>
-                                                <div>
-                                                    <span className={styles.memberName}>{m.display_name}</span>
-                                                    <span className={styles.memberEmail}>{m.email}</span>
-                                                </div>
-                                            </div>
-                                        </td>
-                                        <td>
-                                            <span className={m.role === 'dm' ? styles.dmBadge : styles.memberBadge}>
-                                                {m.role === 'dm' ? 'DM' : 'Player'}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={styles.loginDot}>
-                                                {formatLastUpdated(m.last_sign_in)}
-                                            </span>
-                                        </td>
-                                        <td>
-                                            <span className={isStale ? styles.staleDot : styles.freshDot}>
-                                                {formatLastUpdated(m.last_availability_update)}
-                                            </span>
-                                        </td>
-                                        {isAdmin && (
-                                            <>
-                                                <td>
-                                                    <span style={{ 
-                                                        color: m.has_push_enabled ? '#34d399' : '#94a3b8',
-                                                        fontSize: '0.75rem',
-                                                        fontWeight: 600,
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: '4px'
-                                                    }}>
+                                            </td>
+                                            <td>
+                                                <span className={m.role === 'dm' ? styles.dmBadge : styles.memberBadge}>
+                                                    {m.role === 'dm' ? 'DM' : 'Player'}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={styles.loginDot}>
+                                                    {formatLastUpdated(m.last_sign_in)}
+                                                </span>
+                                            </td>
+                                            <td>
+                                                <span className={isStale ? styles.staleDot : styles.freshDot}>
+                                                    {formatLastUpdated(m.last_availability_update)}
+                                                </span>
+                                            </td>
+                                            {isAdmin && (
+                                                <>
+                                                    <td>
                                                         <span style={{ 
-                                                            display: 'inline-block', 
-                                                            width: '6px', 
-                                                            height: '6px', 
-                                                            borderRadius: '50%',
-                                                            backgroundColor: m.has_push_enabled ? '#34d399' : '#94a3b8'
-                                                        }} />
-                                                        {m.has_push_enabled ? 'Active' : 'Missing'}
-                                                    </span>
-                                                </td>
-                                                <td>
-                                                    <button
-                                                        className={styles.remindBtn}
-                                                        onClick={() => remindUser(m.user_id)}
-                                                        disabled={remindingUserId === m.user_id}
-                                                    >
-                                                        {remindingUserId === m.user_id ? 'Sending...' : '🔔 Remind'}
-                                                    </button>
-                                                </td>
-                                            </>
-                                        )}
-                                    </tr>
-                                );
-                            })}
-                        </tbody>
-                    </table>
+                                                            color: m.has_push_enabled ? '#34d399' : '#94a3b8',
+                                                            fontSize: '0.75rem',
+                                                            fontWeight: 600,
+                                                            display: 'flex',
+                                                            alignItems: 'center',
+                                                            gap: '4px'
+                                                        }}>
+                                                            <span style={{ 
+                                                                display: 'inline-block', 
+                                                                width: '6px', 
+                                                                height: '6px', 
+                                                                borderRadius: '50%',
+                                                                backgroundColor: m.has_push_enabled ? '#34d399' : '#94a3b8'
+                                                            }} />
+                                                            {m.has_push_enabled ? 'Active' : 'Missing'}
+                                                        </span>
+                                                    </td>
+                                                    <td>
+                                                        <button
+                                                            className={styles.remindBtn}
+                                                            onClick={() => remindUser(m.user_id)}
+                                                            disabled={remindingUserId === m.user_id}
+                                                        >
+                                                            {remindingUserId === m.user_id ? 'Sending...' : '🔔 Remind'}
+                                                        </button>
+                                                    </td>
+                                                </>
+                                            )}
+                                        </tr>
+                                    );
+                                })}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             )}
         </div>

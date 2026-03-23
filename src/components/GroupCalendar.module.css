@@ -466,3 +466,25 @@
     color: var(--text-secondary);
     font-size: 0.85rem;
 }
+
+.tableResponsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-bottom: 1rem;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.1) transparent;
+}
+
+.tableResponsive::-webkit-scrollbar {
+    height: 4px;
+}
+
+.tableResponsive::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 10px;
+}
+
+.activityTable {
+    min-width: 600px; /* Force minimum width to enable scrolling on small screens */
+}
