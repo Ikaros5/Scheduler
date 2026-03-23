@@ -63,6 +63,7 @@ interface MemberActivity {
     role: string;
     last_sign_in: string | null;
     last_availability_update: string | null;
+    has_push_enabled: boolean;
 }
 
 
@@ -583,7 +584,12 @@ export default function GroupCalendar() {
                                 <th>Role</th>
                                 <th>Last Login</th>
                                 <th>Last Updated</th>
-                                {isAdmin && <th>Actions</th>}
+                                {isAdmin && (
+                                    <>
+                                        <th>Push Enabled</th>
+                                        <th>Actions</th>
+                                    </>
+                                )}
                             </tr>
                         </thead>
                         <tbody>
@@ -618,15 +624,36 @@ export default function GroupCalendar() {
                                             </span>
                                         </td>
                                         {isAdmin && (
-                                            <td>
-                                                <button
-                                                    className={styles.remindBtn}
-                                                    onClick={() => remindUser(m.user_id)}
-                                                    disabled={remindingUserId === m.user_id}
-                                                >
-                                                    {remindingUserId === m.user_id ? 'Sending...' : '🔔 Remind'}
-                                                </button>
-                                            </td>
+                                            <>
+                                                <td>
+                                                    <span style={{ 
+                                                        color: m.has_push_enabled ? '#34d399' : '#94a3b8',
+                                                        fontSize: '0.75rem',
+                                                        fontWeight: 600,
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: '4px'
+                                                    }}>
+                                                        <span style={{ 
+                                                            display: 'inline-block', 
+                                                            width: '6px', 
+                                                            height: '6px', 
+                                                            borderRadius: '50%',
+                                                            backgroundColor: m.has_push_enabled ? '#34d399' : '#94a3b8'
+                                                        }} />
+                                                        {m.has_push_enabled ? 'Active' : 'Missing'}
+                                                    </span>
+                                                </td>
+                                                <td>
+                                                    <button
+                                                        className={styles.remindBtn}
+                                                        onClick={() => remindUser(m.user_id)}
+                                                        disabled={remindingUserId === m.user_id}
+                                                    >
+                                                        {remindingUserId === m.user_id ? 'Sending...' : '🔔 Remind'}
+                                                    </button>
+                                                </td>
+                                            </>
                                         )}
                                     </tr>
                                 );
