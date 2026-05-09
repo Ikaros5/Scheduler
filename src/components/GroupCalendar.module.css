@@ -327,6 +327,7 @@
         height: 44px;
     }
 }
+
 /* Member Activity Table */
 .activitySection {
     margin-top: 2rem;
@@ -486,96 +487,6 @@
 }
 
 .activityTable {
-    min-width: 600px; /* Force minimum width to enable scrolling on small screens */
-}
-
-.viewToggle {
-  display: flex;
-  gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 0.25rem;
-  border-radius: 8px;
-}
-
-.toggleBtn {
-  background: transparent;
-  border: none;
-  color: var(--text-secondary);
-  padding: 0.5rem 1rem;
-  border-radius: 6px;
-  cursor: pointer;
-  font-weight: 500;
-  transition: all 0.2s;
-}
-
-.toggleBtn.active {
-  background: var(--primary);
-  color: white;
-}
-
-.monthlyGrid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 8px;
-  padding: 1rem;
-}
-
-.monthlyDayHeader {
-  text-align: center;
-  font-weight: bold;
-  color: var(--text-secondary);
-  padding: 0.5rem;
-}
-
-.monthlyCell {
-  aspect-ratio: 1;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  font-size: 1.2rem;
-  background: rgba(255, 255, 255, 0.02);
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  transition: transform 0.2s;
-}
-.monthlyCell:hover {
-  transform: scale(1.05);
-}
-
-.monthlyEmpty {
-  aspect-ratio: 1;
-}
-
-.yearlyGrid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 1.5rem;
-  padding: 1rem;
-}
-
-.yearlyMonthBlock {
-  background: rgba(255, 255, 255, 0.02);
-  border-radius: 12px;
-  padding: 1rem;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-}
-
-.yearlyMonthName {
-  margin-bottom: 0.5rem;
-  text-align: center;
-  font-size: 1rem;
-  color: var(--text-secondary);
-}
-
-.yearlyMiniGrid {
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 4px;
-}
-
-.yearlyCell {
-  aspect-ratio: 1;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.02);
+    min-width: 600px;
+    /* Force minimum width to enable scrolling on small screens */
 }

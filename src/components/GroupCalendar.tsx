@@ -13,6 +13,21 @@ const getMonday = (d: Date) => {
     return new Date(date.setDate(diff));
 };
 
+const getMonthDays = (year: number, month: number) => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    const days = [];
+    for (let i = 1; i <= daysInMonth; i++) {
+        const d = new Date(year, month, i);
+        days.push({
+            date: d,
+            dayNum: i,
+            dayOfWeek: d.getDay(),
+            dbIndex: parseInt(`${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`)
+        });
+    }
+    return days;
+};
+
 const getWeekDays = (startDate: Date) => {
     return Array.from({ length: 7 }, (_, i) => {
         const d = new Date(startDate);
@@ -66,13 +81,12 @@ interface MemberActivity {
     last_sign_in: string | null;
     last_availability_update: string | null;
     has_push_enabled: boolean;
-    schedule_filled_until?: number;
+    schedule_filled_until?: string | null;
 }
 
 
 export default function GroupCalendar() {
     const [weekStart, setWeekStart] = useState<Date>(getMonday(new Date()));
-    const [viewMode, setViewMode] = useState<"weekly" | "monthly" | "yearly">("weekly");
     const [data, setData] = useState<AvailabilityData[]>([]);
     const [groups, setGroups] = useState<Group[]>([]);
     const [selectedGroup, setSelectedGroup] = useState<Group | null>(null);
@@ -82,6 +96,7 @@ export default function GroupCalendar() {
     const [userCount, setUserCount] = useState(0);
     const [loading, setLoading] = useState(false);
     const [cache, setCache] = useState<Record<string, { data: AvailabilityData[], sessions: GroupSession[] }>>({});
+    const [viewMode, setViewMode] = useState<"weekly" | "monthly" | "yearly">("weekly");
     const [isAdmin, setIsAdmin] = useState(false);
     const [memberActivity, setMemberActivity] = useState<MemberActivity[]>([]);
     const [remindingUserId, setRemindingUserId] = useState<string | null>(null);
@@ -89,29 +104,6 @@ export default function GroupCalendar() {
     const supabase = createClient();
 
     const weekDays = getWeekDays(weekStart);
-
-    const year = weekStart.getFullYear();
-    const currentMonth = weekStart.getMonth();
-    
-    const monthDays = Array.from({ length: new Date(year, currentMonth + 1, 0).getDate() }, (_, i) => {
-        const d = new Date(year, currentMonth, i + 1);
-        return {
-            date: d,
-            dayNum: d.getDate(),
-            weekday: d.toLocaleDateString('en-US', { weekday: 'short' }),
-            dayOfWeek: d.getDay(),
-            dbIndex: parseInt(`${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`)
-        };
-    });
-
-    const yearMonths = Array.from({ length: 12 }, (_, i) => {
-        return {
-            month: i,
-            name: new Date(year, i, 1).toLocaleString('default', { month: 'short' }),
-            startIdx: parseInt(`${year}${String(i + 1).padStart(2, '0')}01`),
-            endIdx: parseInt(`${year}${String(i + 1).padStart(2, '0')}${String(new Date(year, i + 1, 0).getDate()).padStart(2, '0')}`)
-        };
-    });
 
     useEffect(() => {
         async function fetchGroups() {
@@ -149,17 +141,8 @@ export default function GroupCalendar() {
         fetchGroups();
     }, [supabase]);
 
-    let startRange = weekDays[0].dbIndex;
-    let endRange = weekDays[6].dbIndex;
-    if (viewMode === 'monthly') {
-        startRange = monthDays[0].dbIndex;
-        endRange = monthDays[monthDays.length - 1].dbIndex;
-    } else if (viewMode === 'yearly') {
-        startRange = yearMonths[0].startIdx;
-        endRange = yearMonths[11].endIdx;
-    }
-
-    const cacheKey = `${selectedGroupId}-${viewMode}-${startRange}-${endRange}`;
+    const currentWeekIdx = weekDays[0].dbIndex;
+    const cacheKey = `${selectedGroupId}-${viewMode}-${weekStart.getFullYear()}-${viewMode === 'weekly' ? currentWeekIdx : viewMode === 'monthly' ? weekStart.getMonth() : 'year'}`;
 
     useEffect(() => {
         async function fetchData() {
@@ -217,6 +200,21 @@ export default function GroupCalendar() {
             setData([]);
             setSessions([]);
             setLoading(true);
+
+            let startRange = weekDays[0].dbIndex;
+            let endRange = weekDays[6].dbIndex;
+
+            if (viewMode === "monthly") {
+                const start = new Date(weekStart.getFullYear(), weekStart.getMonth(), 1);
+                const end = new Date(weekStart.getFullYear(), weekStart.getMonth() + 1, 0);
+                startRange = parseInt(`${start.getFullYear()}${String(start.getMonth() + 1).padStart(2, '0')}${String(start.getDate()).padStart(2, '0')}`);
+                endRange = parseInt(`${end.getFullYear()}${String(end.getMonth() + 1).padStart(2, '0')}${String(end.getDate()).padStart(2, '0')}`);
+            } else if (viewMode === "yearly") {
+                const start = new Date(weekStart.getFullYear(), 0, 1);
+                const end = new Date(weekStart.getFullYear(), 11, 31);
+                startRange = parseInt(`${start.getFullYear()}0101`);
+                endRange = parseInt(`${end.getFullYear()}1231`);
+            }
 
             const { data: memberData } = await supabase
                 .from("group_members")
@@ -309,29 +307,11 @@ export default function GroupCalendar() {
 
             if (recurrentRes.data) {
                 recurrentRes.data.forEach((rRule: any) => {
-                    const allDaysToCheck: any[] = [];
-                    if (viewMode === 'weekly') {
-                        allDaysToCheck.push(...weekDays);
-                    } else if (viewMode === 'monthly') {
-                        allDaysToCheck.push(...monthDays);
-                    } else {
-                        for (let m = 0; m < 12; m++) {
-                            const daysInMonth = new Date(year, m + 1, 0).getDate();
-                            for (let d = 1; d <= daysInMonth; d++) {
-                                const date = new Date(year, m, d);
-                                allDaysToCheck.push({
-                                    dayOfWeek: date.getDay(),
-                                    dbIndex: parseInt(`${year}${String(m + 1).padStart(2, '0')}${String(d).padStart(2, '0')}`)
-                                });
-                            }
-                        }
-                    }
-
-                    allDaysToCheck.forEach(day => {
-                        if (rRule.days_of_week.includes(day.dayOfWeek) && 
-                            day.dbIndex >= rRule.start_date_idx && 
+                    weekDays.forEach(day => {
+                        if (rRule.days_of_week.includes(day.dayOfWeek) &&
+                            day.dbIndex >= rRule.start_date_idx &&
                             day.dbIndex <= rRule.end_date_idx) {
-                            
+
                             rRule.hours.forEach((h: number) => {
                                 extraBusyData.push({
                                     user_id: rRule.user_id,
@@ -361,15 +341,15 @@ export default function GroupCalendar() {
         }
 
         fetchData();
-    }, [supabase, weekStart, selectedGroupId, groups, cacheKey]);
+    }, [supabase, weekStart, selectedGroupId, groups, cacheKey, viewMode]);
 
     const navigateWeek = (direction: number) => {
         const next = new Date(weekStart);
-        if (viewMode === 'weekly') {
+        if (viewMode === "weekly") {
             next.setDate(weekStart.getDate() + (direction * 7));
-        } else if (viewMode === 'monthly') {
+        } else if (viewMode === "monthly") {
             next.setMonth(weekStart.getMonth() + direction);
-        } else if (viewMode === 'yearly') {
+        } else if (viewMode === "yearly") {
             next.setFullYear(weekStart.getFullYear() + direction);
         }
         setWeekStart(getMonday(next));
@@ -428,28 +408,68 @@ export default function GroupCalendar() {
         return userCount - busyCount;
     };
 
-    const getBestDayColorClass = (dbIndex: number) => {
-        const sessionsInDay = sessions.filter(s => s.day_index === dbIndex);
-        if (sessionsInDay.length > 0) return styles.sessionCell;
-
-        let hasGreen = false;
-        let hasYellow = false;
-
-        const dateStr = dbIndex.toString();
-        const dObj = new Date(parseInt(dateStr.substring(0,4)), parseInt(dateStr.substring(4,6))-1, parseInt(dateStr.substring(6,8)));
-        const validHoursForDay = ALL_SCHEDULE_HOURS.filter(h => isHourActiveForDay(dObj.getDay(), h));
+    const getDayColor = (dbIndex: number) => {
+        if (userCount === 0 || !selectedGroupId) return "";
+        let bestColor = "";
         
-        if (validHoursForDay.length === 0) return styles.disabled;
+        const year = Math.floor(dbIndex / 10000);
+        const month = Math.floor((dbIndex % 10000) / 100) - 1;
+        const dayNum = dbIndex % 100;
+        const dayOfWeek = new Date(year, month, dayNum).getDay();
 
-        for (const hour of validHoursForDay) {
-            const cls = getHeatmapClass(dbIndex, hour);
-            if (cls === styles.heatGreen) hasGreen = true;
-            if (cls === styles.heatYellow) hasYellow = true;
+        for (const hour of ALL_SCHEDULE_HOURS) {
+            const active = isHourActiveForDay(dayOfWeek, hour);
+            if (!active) continue;
+            
+            const color = getHeatmapClass(dbIndex, hour);
+            if (color === styles.heatGreen) return styles.heatGreen; // Best possible
+            if (color === styles.heatYellow && bestColor !== styles.heatGreen) bestColor = styles.heatYellow;
+            else if (color === styles.heatRed && !bestColor) bestColor = styles.heatRed;
         }
+        return bestColor || styles.heatRed;
+    };
 
-        if (hasGreen) return styles.heatGreen;
-        if (hasYellow) return styles.heatYellow;
-        return styles.heatRed;
+    const renderMonthGrid = (year: number, month: number, isSmall: boolean = false) => {
+        const monthDays = getMonthDays(year, month);
+        const firstDayOfWeek = monthDays[0].dayOfWeek;
+        const emptyCells = Array.from({ length: firstDayOfWeek }, (_, i) => i);
+        
+        return (
+            <div key={`${year}-${month}`} style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', flex: isSmall ? '1 1 200px' : '1' }}>
+                <h4 style={{ textAlign: 'center', fontSize: isSmall ? '1rem' : '1.2rem', marginBottom: '0.5rem' }}>
+                    {new Date(year, month, 1).toLocaleString('default', { month: 'long' })}
+                </h4>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: '4px' }}>
+                    {['S', 'M', 'T', 'W', 'T', 'F', 'S'].map((d, i) => (
+                        <div key={i} style={{ textAlign: 'center', fontSize: '0.8rem', opacity: 0.7 }}>{d}</div>
+                    ))}
+                    {emptyCells.map(i => <div key={`empty-${i}`} />)}
+                    {monthDays.map(day => {
+                        const color = getDayColor(day.dbIndex);
+                        const hasSession = sessions.some(s => s.day_index === day.dbIndex);
+                        return (
+                            <div 
+                                key={day.dbIndex}
+                                className={color}
+                                style={{ 
+                                    aspectRatio: '1', 
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center', 
+                                    borderRadius: '6px',
+                                    fontSize: isSmall ? '0.8rem' : '1rem',
+                                    fontWeight: 500,
+                                    border: hasSession ? '2px solid var(--primary)' : '1px solid rgba(255,255,255,0.05)',
+                                    background: color ? undefined : 'rgba(255,255,255,0.05)'
+                                }}
+                            >
+                                {day.dayNum}
+                            </div>
+                        );
+                    })}
+                </div>
+            </div>
+        );
     };
 
     // Build member activity table whenever groupMembers changes
@@ -516,19 +536,19 @@ export default function GroupCalendar() {
 
     function formatLastUpdated(iso: string | null): string {
         if (!iso) return 'Never';
-        
+
         // Force comparison in Europe/Madrid timezone
         const d = new Date(iso);
-        const options: Intl.DateTimeFormatOptions = { 
+        const options: Intl.DateTimeFormatOptions = {
             timeZone: 'Europe/Madrid',
             year: 'numeric',
             month: 'short',
             day: '2-digit'
         };
-        
+
         const nowInSpain = new Intl.DateTimeFormat('en-GB', { ...options, hour: 'numeric' }).format(new Date());
         const dInSpain = new Intl.DateTimeFormat('en-GB', options).format(d);
-        
+
         const today = new Intl.DateTimeFormat('en-GB', options).format(new Date());
         const yesterdayDate = new Date();
         yesterdayDate.setDate(yesterdayDate.getDate() - 1);
@@ -569,11 +589,6 @@ export default function GroupCalendar() {
                 </div>
 
                 <div className={styles.groupSelector}>
-                    <div className={styles.viewToggle} style={{ marginRight: '1rem' }}>
-                        <button className={`${styles.toggleBtn} ${viewMode === 'weekly' ? styles.active : ''}`} onClick={() => setViewMode('weekly')}>Weekly</button>
-                        <button className={`${styles.toggleBtn} ${viewMode === 'monthly' ? styles.active : ''}`} onClick={() => setViewMode('monthly')}>Monthly</button>
-                        <button className={`${styles.toggleBtn} ${viewMode === 'yearly' ? styles.active : ''}`} onClick={() => setViewMode('yearly')}>Yearly</button>
-                    </div>
                     <select
                         value={selectedGroupId}
                         onChange={(e) => setSelectedGroupId(e.target.value)}
@@ -596,95 +611,71 @@ export default function GroupCalendar() {
                 </p>
             </div>
 
-            {viewMode === 'weekly' && (
-                <div className={styles.gridBodyWrapper}>
-                    <div className={styles.header}>
-                        <div className={styles.timeLabel}></div>
-                        {weekDays.map(day => (
-                            <div key={day.dbIndex} className={styles.dayLabel}>
-                                <span className={styles.weekday}>{day.weekday}</span>
-                                <span className={styles.dateNum}>{day.dayNum}</span>
-                            </div>
-                        ))}
-                    </div>
-
-                    <div className={styles.gridBody}>
-                        {ALL_SCHEDULE_HOURS.map(hour => {
-                            const slotMeta = TIME_SLOTS.find(s => s.id === hour);
-                            return (
-                                <div key={hour} className={styles.row}>
-                                    <div className={styles.timeLabel}>
-                                        <span className={styles.slotName}>{slotMeta?.label}</span>
-                                        <span className={styles.slotTime}>{slotMeta?.subtext}</span>
-                                    </div>
-                                    {weekDays.map((day) => {
-                                        const active = isHourActiveForDay(day.dayOfWeek, hour);
-                                        const count = getMatchesCount(day.dbIndex, hour);
-                                        const sessionsInSlot = sessions.filter(s => s.day_index === day.dbIndex && s.hour === hour);
-                                        const isSession = sessionsInSlot.length > 0;
-
-                                        return (
-                                            <div
-                                                key={`${day.dbIndex}-${hour}`}
-                                                className={`${styles.cell} ${active ? getHeatmapClass(day.dbIndex, hour) : styles.disabled} ${isSession ? styles.sessionCell : ""}`}
-                                                title={isSession ? "Planned Session" : (active ? getTooltip(day.dbIndex, hour) : "Unavailable")}
-                                            >
-                                                {isSession && (
-                                                    <span
-                                                        className={styles.sessionLabel}
-                                                        style={{ textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', padding: '0 2px' }}
-                                                    >
-                                                        {sessionsInSlot.map(s => groups.find(g => g.id === s.group_id)?.name || "Session").join(', ')}
-                                                    </span>
-                                                )}
-                                                {active && !isSession && <span className={styles.countBadge}>{count}</span>}
-                                            </div>
-                                        );
-                                    })}
+            <div className={styles.gridBodyWrapper}>
+                {viewMode === "weekly" && (
+                    <>
+                        <div className={styles.header}>
+                            <div className={styles.timeLabel}></div>
+                            {weekDays.map(day => (
+                                <div key={day.dbIndex} className={styles.dayLabel}>
+                                    <span className={styles.weekday}>{day.weekday}</span>
+                                    <span className={styles.dateNum}>{day.dayNum}</span>
                                 </div>
-                            );
-                        })}
-                    </div>
-                </div>
-            )}
-
-            {viewMode === 'monthly' && (
-                <div className={styles.monthlyGrid}>
-                    {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(d => <div key={d} className={styles.monthlyDayHeader}>{d}</div>)}
-                    {Array.from({ length: monthDays[0].date.getDay() }).map((_, i) => <div key={`empty-${i}`} className={styles.monthlyEmpty}></div>)}
-                    {monthDays.map(day => (
-                        <div key={day.dbIndex} className={`${styles.monthlyCell} ${getBestDayColorClass(day.dbIndex)}`} title={day.date.toDateString()}>
-                            {day.dayNum}
+                            ))}
                         </div>
-                    ))}
-                </div>
-            )}
 
-            {viewMode === 'yearly' && (
-                <div className={styles.yearlyGrid}>
-                    {yearMonths.map(month => {
-                        const mDays = Array.from({ length: new Date(year, month.month + 1, 0).getDate() }, (_, i) => {
-                            const d = new Date(year, month.month, i + 1);
-                            return {
-                                dayOfWeek: d.getDay(),
-                                dayNum: d.getDate(),
-                                dbIndex: parseInt(`${year}${String(month.month + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`)
-                            };
-                        });
-                        return (
-                            <div key={month.month} className={styles.yearlyMonthBlock}>
-                                <h4 className={styles.yearlyMonthName}>{month.name}</h4>
-                                <div className={styles.yearlyMiniGrid}>
-                                    {Array.from({ length: new Date(year, month.month, 1).getDay() }).map((_, i) => <div key={`empty-${i}`} className={styles.monthlyEmpty}></div>)}
-                                    {mDays.map(day => (
-                                        <div key={day.dbIndex} className={`${styles.yearlyCell} ${getBestDayColorClass(day.dbIndex)}`} title={`${month.name} ${day.dayNum}`} />
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
+                        <div className={styles.gridBody}>
+                            {ALL_SCHEDULE_HOURS.map(hour => {
+                                const slotMeta = TIME_SLOTS.find(s => s.id === hour);
+                                return (
+                                    <div key={hour} className={styles.row}>
+                                        <div className={styles.timeLabel}>
+                                            <span className={styles.slotName}>{slotMeta?.label}</span>
+                                            <span className={styles.slotTime}>{slotMeta?.subtext}</span>
+                                        </div>
+                                        {weekDays.map((day) => {
+                                            const active = isHourActiveForDay(day.dayOfWeek, hour);
+                                            const count = getMatchesCount(day.dbIndex, hour);
+                                            const sessionsInSlot = sessions.filter(s => s.day_index === day.dbIndex && s.hour === hour);
+                                            const isSession = sessionsInSlot.length > 0;
+
+                                            return (
+                                                <div
+                                                    key={`${day.dbIndex}-${hour}`}
+                                                    className={`${styles.cell} ${active ? getHeatmapClass(day.dbIndex, hour) : styles.disabled} ${isSession ? styles.sessionCell : ""}`}
+                                                    title={isSession ? "Planned Session" : (active ? getTooltip(day.dbIndex, hour) : "Unavailable")}
+                                                >
+                                                    {isSession && (
+                                                        <span
+                                                            className={styles.sessionLabel}
+                                                            style={{ textAlign: 'center', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '100%', padding: '0 2px' }}
+                                                        >
+                                                            {sessionsInSlot.map(s => groups.find(g => g.id === s.group_id)?.name || "Session").join(', ')}
+                                                        </span>
+                                                    )}
+                                                    {active && !isSession && <span className={styles.countBadge}>{count}</span>}
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                );
+                            })}
+                        </div>
+                    </>
+                )}
+                
+                {viewMode === "monthly" && (
+                    <div style={{ padding: '2rem' }}>
+                        {renderMonthGrid(weekStart.getFullYear(), weekStart.getMonth(), false)}
+                    </div>
+                )}
+
+                {viewMode === "yearly" && (
+                    <div style={{ padding: '2rem', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: '2rem' }}>
+                        {Array.from({ length: 12 }, (_, i) => renderMonthGrid(weekStart.getFullYear(), i, true))}
+                    </div>
+                )}
+            </div>
 
             <div className={styles.legend}>
                 <div className={styles.legendItem}>
@@ -714,9 +705,9 @@ export default function GroupCalendar() {
                                 <tr>
                                     <th>Member</th>
                                     <th>Role</th>
+                                    <th>Filled Until</th>
                                     <th>Last Active</th>
                                     <th>Last Updated</th>
-                                    <th>Filled Until</th>
                                     {isAdmin && (
                                         <>
                                             <th>Push Enabled</th>
@@ -746,6 +737,9 @@ export default function GroupCalendar() {
                                                     {m.role === 'dm' ? 'DM' : 'Player'}
                                                 </span>
                                             </td>
+                                            <td style={{ color: 'var(--text-secondary)' }}>
+                                                {m.schedule_filled_until ? new Date(m.schedule_filled_until).toLocaleDateString('en-GB') : '-'}
+                                            </td>
                                             <td>
                                                 <span className={styles.loginDot}>
                                                     {formatLastUpdated(m.last_sign_in)}
@@ -756,18 +750,10 @@ export default function GroupCalendar() {
                                                     {formatLastUpdated(m.last_availability_update)}
                                                 </span>
                                             </td>
-                                            <td>
-                                                <span className={styles.freshDot}>
-                                                    {m.schedule_filled_until ? (() => {
-                                                        const s = m.schedule_filled_until.toString();
-                                                        return s.length === 8 ? `${s.substring(6,8)}/${s.substring(4,6)}/${s.substring(0,4)}` : 'Unknown';
-                                                    })() : 'Not Set'}
-                                                </span>
-                                            </td>
                                             {isAdmin && (
                                                 <>
                                                     <td>
-                                                        <span style={{ 
+                                                        <span style={{
                                                             color: m.has_push_enabled ? '#34d399' : '#94a3b8',
                                                             fontSize: '0.75rem',
                                                             fontWeight: 600,
@@ -775,10 +761,10 @@ export default function GroupCalendar() {
                                                             alignItems: 'center',
                                                             gap: '4px'
                                                         }}>
-                                                            <span style={{ 
-                                                                display: 'inline-block', 
-                                                                width: '6px', 
-                                                                height: '6px', 
+                                                            <span style={{
+                                                                display: 'inline-block',
+                                                                width: '6px',
+                                                                height: '6px',
                                                                 borderRadius: '50%',
                                                                 backgroundColor: m.has_push_enabled ? '#34d399' : '#94a3b8'
                                                             }} />

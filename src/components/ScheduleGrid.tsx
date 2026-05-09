@@ -45,10 +45,8 @@ export default function ScheduleGrid() {
     const [user, setUser] = useState<User | null>(null);
     const [weekStart, setWeekStart] = useState<Date>(getMonday(new Date()));
     const [selected, setSelected] = useState<Set<string>>(new Set());
-    const [reasons, setReasons] = useState<Record<string, string>>({});
     const [recurrentRules, setRecurrentRules] = useState<RecurrentRule[]>([]);
-    const [filledUntilDate, setFilledUntilDate] = useState<string>("");
-    
+
     // New rule creation state
     const [newRecName, setNewRecName] = useState("");
     const [newRecDays, setNewRecDays] = useState<number[]>([]);
@@ -61,7 +59,9 @@ export default function ScheduleGrid() {
     const [saving, setSaving] = useState(false);
     const [loading, setLoading] = useState(true);
     const [hasChanged, setHasChanged] = useState(false);
-    const [cache, setCache] = useState<Record<number, { selected: Set<string>, reasons: Record<string, string> }>>({});
+    const [cache, setCache] = useState<Record<number, Set<string>>>({});
+    const [filledUntil, setFilledUntil] = useState("");
+    const [cancelReason, setCancelReason] = useState("");
     const dateInputRef = useRef<HTMLInputElement>(null);
     const supabase = createClient();
 
@@ -85,11 +85,8 @@ export default function ScheduleGrid() {
             setUser(user);
             if (user) {
                 const { data: profile } = await supabase.from('profiles').select('schedule_filled_until').eq('id', user.id).single();
-                if (profile && profile.schedule_filled_until) {
-                    const idxStr = profile.schedule_filled_until.toString();
-                    if (idxStr.length === 8) {
-                        setFilledUntilDate(`${idxStr.substring(0,4)}-${idxStr.substring(4,6)}-${idxStr.substring(6,8)}`);
-                    }
+                if (profile?.schedule_filled_until) {
+                    setFilledUntil(profile.schedule_filled_until);
                 }
             }
         }
@@ -110,15 +107,13 @@ export default function ScheduleGrid() {
             }
 
             if (cache[currentWeekIdx]) {
-                setSelected(cache[currentWeekIdx].selected);
-                setReasons(cache[currentWeekIdx].reasons);
+                setSelected(cache[currentWeekIdx]);
                 setHasChanged(false);
                 setLoading(false);
                 return;
             }
 
             setSelected(new Set());
-            setReasons({});
             setLoading(true);
 
             const startRange = weekDays[0].dbIndex;
@@ -126,22 +121,15 @@ export default function ScheduleGrid() {
 
             const { data } = await supabase
                 .from("availability")
-                .select("day_index, hour, reason")
+                .select("day_index, hour")
                 .eq("user_id", user.id)
                 .gte("day_index", startRange)
                 .lte("day_index", endRange);
 
             if (data) {
-                const loaded = new Set<string>();
-                const loadedReasons: Record<string, string> = {};
-                data.forEach(d => {
-                    const key = `${d.day_index}-${d.hour}`;
-                    loaded.add(key);
-                    if (d.reason) loadedReasons[key] = d.reason;
-                });
+                const loaded = new Set(data.map(d => `${d.day_index}-${d.hour}`));
                 setSelected(loaded);
-                setReasons(loadedReasons);
-                setCache(prev => ({ ...prev, [currentWeekIdx]: { selected: loaded, reasons: loadedReasons } }));
+                setCache(prev => ({ ...prev, [currentWeekIdx]: loaded }));
             }
             setHasChanged(false);
             setLoading(false);
@@ -169,48 +157,21 @@ export default function ScheduleGrid() {
             return dayMeta ? isSlotValidAndFuture(dayMeta.date, hour) : false;
         }).map(key => {
             const [day_index, hour] = key.split("-").map(Number);
-            return { user_id: user.id, day_index, hour, reason: reasons[key] || null };
+            return { user_id: user.id, day_index, hour, reason: cancelReason.trim() || null };
         });
 
         if (inserts.length > 0) {
             await supabase.from("availability").insert(inserts);
         }
 
-        setCache(prev => ({ ...prev, [currentWeekIdx]: { selected: new Set(selected), reasons: { ...reasons } } }));
+        if (filledUntil) {
+            await supabase.from("profiles").update({ schedule_filled_until: filledUntil }).eq("id", user.id);
+        }
+
+        setCache(prev => ({ ...prev, [currentWeekIdx]: new Set(selected) }));
         setHasChanged(false);
         setSaving(false);
-    };
-
-    const handleSaveFilledUntil = async (val: string) => {
-        setFilledUntilDate(val);
-        if (!user) return;
-        const idx = val ? parseInt(val.replace(/-/g, '')) : null;
-        await supabase.from('profiles').update({ schedule_filled_until: idx }).eq('id', user.id);
-    };
-
-    const promptCancelDay = (dayIdx: number, dateObj: Date) => {
-        const validHours = HOURS.filter(h => isSlotValidAndFuture(dateObj, h));
-        if (validHours.length === 0) return;
-
-        const reason = window.prompt(`Cancel entire day (${dateObj.toLocaleDateString()})? Enter a reason (optional):`);
-        if (reason === null) return; // cancelled
-
-        const newSelected = new Set(selected);
-        const newReasons = { ...reasons };
-
-        validHours.forEach(h => {
-            const key = `${dayIdx}-${h}`;
-            if (!recurrentSet.has(key)) {
-                newSelected.add(key);
-                if (reason.trim()) {
-                    newReasons[key] = reason.trim();
-                }
-            }
-        });
-
-        setSelected(newSelected);
-        setReasons(newReasons);
-        setHasChanged(true);
+        setCancelReason("");
     };
 
     const toggleDaySelection = (day: number) => {
@@ -232,7 +193,7 @@ export default function ScheduleGrid() {
         let endIdx = 20991231;
         if (newRecStart) startIdx = parseInt(newRecStart.replace(/-/g, ''));
         if (newRecEnd) endIdx = parseInt(newRecEnd.replace(/-/g, ''));
-        
+
         if (endIdx < startIdx) {
             alert("End date cannot be before start date!");
             return;
@@ -292,15 +253,9 @@ export default function ScheduleGrid() {
         setIsDragging(true);
 
         const newSelected = new Set(selected);
-        const newReasons = { ...reasons };
-        if (mode === "add") {
-            newSelected.add(key);
-        } else {
-            newSelected.delete(key);
-            delete newReasons[key];
-        }
+        if (mode === "add") newSelected.add(key);
+        else newSelected.delete(key);
         setSelected(newSelected);
-        setReasons(newReasons);
         setHasChanged(true);
     };
 
@@ -316,15 +271,9 @@ export default function ScheduleGrid() {
 
         const key = `${day.dbIndex}-${hour}`;
         const newSelected = new Set(selected);
-        const newReasons = { ...reasons };
-        if (dragMode === "add") {
-            newSelected.add(key);
-        } else {
-            newSelected.delete(key);
-            delete newReasons[key];
-        }
+        if (dragMode === "add") newSelected.add(key);
+        else newSelected.delete(key);
         setSelected(newSelected);
-        setReasons(newReasons);
         setHasChanged(true);
     };
 
@@ -349,15 +298,9 @@ export default function ScheduleGrid() {
             if (dayMeta && isSlotValidAndFuture(dayMeta.date, hour) && !recurrentSet.has(`${dayIdx}-${hour}`)) {
                 const key = `${dayIdx}-${hour}`;
                 const newSelected = new Set(selected);
-                const newReasons = { ...reasons };
-                if (dragMode === "add") {
-                    newSelected.add(key);
-                } else {
-                    newSelected.delete(key);
-                    delete newReasons[key];
-                }
+                if (dragMode === "add") newSelected.add(key);
+                else newSelected.delete(key);
                 setSelected(newSelected);
-                setReasons(newReasons);
                 setHasChanged(true);
             }
         }
@@ -381,7 +324,7 @@ export default function ScheduleGrid() {
                 onTouchEnd={handleMouseUp}
                 onTouchMove={handleTouchMove}
             >
-                <div className={styles.monthHeader} style={{ flexWrap: 'wrap', gap: '1rem' }}>
+                <div className={styles.monthHeader}>
                     <div className={styles.navGroup}>
                         <button onClick={() => navigateWeek(-1)} className={styles.navBtn}>←</button>
                         <div className={styles.titleWrapper} onClick={() => dateInputRef.current?.showPicker()}>
@@ -395,30 +338,13 @@ export default function ScheduleGrid() {
                         </div>
                         <button onClick={() => navigateWeek(1)} className={styles.navBtn}>→</button>
                     </div>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                        <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Schedule Filled Until:</label>
-                        <input 
-                            type="date" 
-                            className={styles.selectField}
-                            value={filledUntilDate}
-                            onChange={(e) => handleSaveFilledUntil(e.target.value)}
-                            style={{ padding: '6px', fontSize: '0.85rem' }}
-                        />
-                    </div>
                 </div>
 
                 <div className={styles.gridBodyWrapper}>
                     <div className={styles.header}>
                         <div className={styles.timeLabel}></div>
                         {weekDays.map(day => (
-                            <div 
-                                key={day.dbIndex} 
-                                className={styles.dayLabel} 
-                                onClick={() => promptCancelDay(day.dbIndex, day.date)}
-                                style={{ cursor: 'pointer' }}
-                                title="Click to cancel entire day"
-                            >
+                            <div key={day.dbIndex} className={styles.dayLabel}>
                                 <span className={styles.weekday}>{day.weekday}</span>
                                 <span className={styles.dateNum}>{day.dayNum}</span>
                             </div>
@@ -439,7 +365,7 @@ export default function ScheduleGrid() {
                                         const key = `${day.dbIndex}-${hour}`;
                                         const isRecurrent = recurrentSet.has(key);
                                         const isSelected = selected.has(key);
-                                        
+
                                         return (
                                             <div
                                                 key={key}
@@ -460,10 +386,36 @@ export default function ScheduleGrid() {
 
                 <div className={styles.footer}>
                     <p>{loading ? "Loading..." : `${selected.size + recurrentSet.size} busy slots marked`}</p>
-                    <div className={styles.buttonWrapper}>
+                    <div className={styles.buttonWrapper} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', alignItems: 'flex-end' }}>
+                        
+                        <div style={{ display: 'flex', gap: '10px', width: '100%', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxWidth: '200px' }}>
+                                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>I have filled my schedule until:</label>
+                                <input 
+                                    type="date" 
+                                    className={styles.selectField} 
+                                    value={filledUntil} 
+                                    onChange={(e) => { setFilledUntil(e.target.value); setHasChanged(true); }}
+                                    style={{ padding: '6px' }}
+                                />
+                            </div>
+                            
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', flex: 1, minWidth: '200px', maxWidth: '300px' }}>
+                                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Reason for newly added busy blocks (Optional):</label>
+                                <input 
+                                    type="text" 
+                                    placeholder="e.g. Doctor appointment"
+                                    className={styles.selectField} 
+                                    value={cancelReason} 
+                                    onChange={(e) => setCancelReason(e.target.value)}
+                                    style={{ padding: '6px' }}
+                                />
+                            </div>
+                        </div>
+
                         <button
                             className="btn-primary"
-                            style={{ padding: '8px 16px', fontSize: '14px' }}
+                            style={{ padding: '8px 24px', fontSize: '14px', width: '100%', maxWidth: '200px' }}
                             disabled={!user || saving || loading}
                             onClick={handleSave}
                         >
@@ -478,16 +430,16 @@ export default function ScheduleGrid() {
                     <h3>Add Recurrent Block</h3>
                     <p className={styles.subtext}>Quickly block out periods you are never available (e.g. Work, Gym, Sleep).</p>
                 </div>
-                
+
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
                         <label style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 600 }}>1. Give it a name</label>
-                        <input 
-                            type="text" 
-                            className={styles.selectField} 
-                            placeholder="e.g. Work Schedule" 
-                            value={newRecName} 
-                            onChange={(e) => setNewRecName(e.target.value)} 
+                        <input
+                            type="text"
+                            className={styles.selectField}
+                            placeholder="e.g. Work Schedule"
+                            value={newRecName}
+                            onChange={(e) => setNewRecName(e.target.value)}
                             style={{ width: '100%' }}
                         />
                     </div>
@@ -542,14 +494,14 @@ export default function ScheduleGrid() {
                     <h4 style={{ fontSize: '0.9rem', marginBottom: '1rem', opacity: 0.8 }}>Existing Rules</h4>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {recurrentRules.map(rule => {
-                            const daysList = rule.days_of_week.map(d => DAYS_OF_WEEK[d].substring(0,3)).join(', ');
+                            const daysList = rule.days_of_week.map(d => DAYS_OF_WEEK[d].substring(0, 3)).join(', ');
                             const hoursList = rule.hours.map(h => TIME_SLOTS.find(t => t.id === h)?.label).join(', ');
-                            
+
                             let dateRange = "Forever";
                             if (rule.start_date_idx > 20240101 || rule.end_date_idx < 20991231) {
                                 const sStr = String(rule.start_date_idx);
                                 const eStr = String(rule.end_date_idx);
-                                dateRange = `${sStr.substring(6,8)}/${sStr.substring(4,6)} - ${eStr.substring(6,8)}/${eStr.substring(4,6)}`;
+                                dateRange = `${sStr.substring(6, 8)}/${sStr.substring(4, 6)} - ${eStr.substring(6, 8)}/${eStr.substring(4, 6)}`;
                             }
 
                             return (
