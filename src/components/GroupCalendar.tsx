@@ -306,8 +306,25 @@ export default function GroupCalendar() {
             }
 
             if (recurrentRes.data) {
+                // Build full list of days in the fetched range for recurrent expansion
+                const allDaysInRange: { dbIndex: number; dayOfWeek: number }[] = [];
+                const rangeStart = new Date(
+                    Math.floor(startRange / 10000),
+                    Math.floor((startRange % 10000) / 100) - 1,
+                    startRange % 100
+                );
+                const rangeEnd = new Date(
+                    Math.floor(endRange / 10000),
+                    Math.floor((endRange % 10000) / 100) - 1,
+                    endRange % 100
+                );
+                for (const d = new Date(rangeStart); d <= rangeEnd; d.setDate(d.getDate() + 1)) {
+                    const dbIdx = parseInt(`${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, '0')}${String(d.getDate()).padStart(2, '0')}`);
+                    allDaysInRange.push({ dbIndex: dbIdx, dayOfWeek: d.getDay() });
+                }
+
                 recurrentRes.data.forEach((rRule: any) => {
-                    weekDays.forEach(day => {
+                    allDaysInRange.forEach(day => {
                         if (rRule.days_of_week.includes(day.dayOfWeek) &&
                             day.dbIndex >= rRule.start_date_idx &&
                             day.dbIndex <= rRule.end_date_idx) {
@@ -429,6 +446,24 @@ export default function GroupCalendar() {
         return bestColor || styles.heatRed;
     };
 
+    const getDayTooltip = (dbIndex: number) => {
+        const busyInDay = data.filter(d => d.day_index === dbIndex);
+        if (busyInDay.length === 0) return "Everyone available ✨";
+        const busyUserIds = new Set(busyInDay.map(d => d.user_id));
+        const unavailableMembers = groupMembers.filter(m => busyUserIds.has(m.user_id));
+        if (unavailableMembers.length === 0) return "Everyone available ✨";
+        return unavailableMembers.map(m => {
+            const reasons = busyInDay
+                .filter(d => d.user_id === m.user_id && d.reason)
+                .map(d => d.reason)
+                .filter((v, i, arr) => arr.indexOf(v) === i);
+            const name = m.profiles?.display_name || 'Anonymous';
+            return reasons.length > 0
+                ? `${name} cancelled: ${reasons.join(', ')}`
+                : `${name} unavailable`;
+        }).join('\n');
+    };
+
     const renderMonthGrid = (year: number, month: number, isSmall: boolean = false) => {
         const monthDays = getMonthDays(year, month);
         const firstDayOfWeek = monthDays[0].dayOfWeek;
@@ -447,10 +482,12 @@ export default function GroupCalendar() {
                     {monthDays.map(day => {
                         const color = getDayColor(day.dbIndex);
                         const hasSession = sessions.some(s => s.day_index === day.dbIndex);
+                        const tooltip = getDayTooltip(day.dbIndex);
                         return (
                             <div 
                                 key={day.dbIndex}
                                 className={color}
+                                title={tooltip}
                                 style={{ 
                                     aspectRatio: '1', 
                                     display: 'flex', 
@@ -460,7 +497,8 @@ export default function GroupCalendar() {
                                     fontSize: isSmall ? '0.8rem' : '1rem',
                                     fontWeight: 500,
                                     border: hasSession ? '2px solid var(--primary)' : '1px solid rgba(255,255,255,0.05)',
-                                    background: color ? undefined : 'rgba(255,255,255,0.05)'
+                                    background: color ? undefined : 'rgba(255,255,255,0.05)',
+                                    cursor: 'pointer',
                                 }}
                             >
                                 {day.dayNum}
@@ -609,6 +647,31 @@ export default function GroupCalendar() {
                             ? `Showing overlap for ${groups.find(g => g.id === selectedGroupId)?.name}.`
                             : "Create a group to see overlap data."}
                 </p>
+
+                {/* View mode toggle */}
+                <div style={{ display: 'flex', justifyContent: 'center', gap: '0.5rem', marginTop: '0.75rem' }}>
+                    {(['weekly', 'monthly', 'yearly'] as const).map(mode => (
+                        <button
+                            key={mode}
+                            onClick={() => setViewMode(mode)}
+                            style={{
+                                padding: '6px 18px',
+                                borderRadius: '20px',
+                                border: '1px solid',
+                                borderColor: viewMode === mode ? 'var(--primary)' : 'var(--glass-border)',
+                                background: viewMode === mode ? 'rgba(var(--primary-rgb, 139,92,246), 0.2)' : 'rgba(255,255,255,0.04)',
+                                color: viewMode === mode ? 'var(--primary, #a78bfa)' : 'var(--text-secondary)',
+                                fontWeight: viewMode === mode ? 600 : 400,
+                                fontSize: '0.82rem',
+                                cursor: 'pointer',
+                                textTransform: 'capitalize',
+                                transition: 'all 0.2s',
+                            }}
+                        >
+                            {mode.charAt(0).toUpperCase() + mode.slice(1)}
+                        </button>
+                    ))}
+                </div>
             </div>
 
             <div className={styles.gridBodyWrapper}>
